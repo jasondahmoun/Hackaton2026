@@ -14,16 +14,22 @@ function Sidebar() {
       let alive = true;
       async function check() {
          try {
-            const res = await fetch("http://localhost:8000/health", { signal: AbortSignal.timeout(3000) });
+            const res = await fetch("http://localhost:8000/health", {
+               signal: AbortSignal.timeout(3000),
+            });
             const data = await res.json();
-            if (alive) setHealth(data?.status === "ok" || data?.status === "healthy");
+            if (alive)
+               setHealth(data?.status === "ok" || data?.status === "healthy");
          } catch {
             if (alive) setHealth(false);
          }
       }
       check();
       const id = setInterval(check, 30000);
-      return () => { alive = false; clearInterval(id); };
+      return () => {
+         alive = false;
+         clearInterval(id);
+      };
    }, []);
 
    return (
@@ -57,11 +63,20 @@ function Sidebar() {
             <span
                className="sidebar-health-dot"
                style={{
-                  background: health === null ? "#d1d5db" : health ? "#16a34a" : "#dc2626",
+                  background:
+                     health === null
+                        ? "#d1d5db"
+                        : health
+                          ? "#16a34a"
+                          : "#dc2626",
                }}
             />
             <span className="sidebar-footer-text">
-               {health === null ? "Connexion…" : health ? "Backend OK" : "Backend offline"}
+               {health === null
+                  ? "Connexion…"
+                  : health
+                    ? "Backend OK"
+                    : "Backend offline"}
             </span>
          </div>
       </aside>

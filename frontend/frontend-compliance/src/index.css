@@ -1,82 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 :root {
-   /* Neutrals */
-   --text: #6b7280;
-   --text-h: #111827;
-   --bg: #ffffff;
-   --bg-subtle: #f9fafb;
-   --code-bg: #f9fafb;
-   --border: #e5e7eb;
-   --border-strong: #d1d5db;
+  /* Original tokens */
+  --text: #6b7280;
+  --text-h: #111827;
+  --bg: #ffffff;
+  --bg-subtle: #f9fafb;
+  --code-bg: #f9fafb;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --accent: #16a34a;
+  --accent-dark: #15803d;
+  --accent-bg: #f0fdf4;
+  --accent-border: #bbf7d0;
+  --orange: #ea580c;
+  --orange-bg: #fff7ed;
+  --orange-border: #fed7aa;
+  --status-green: #16a34a;
+  --status-green-bg: #f0fdf4;
+  --status-orange: #ea580c;
+  --status-orange-bg: #fff7ed;
+  --status-red: #dc2626;
+  --status-red-bg: #fef2f2;
+  --sidebar-bg: #ffffff;
+  --sidebar-width: 210px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --sans: 'Inter', system-ui, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
 
-   /* Brand — vert */
-   --accent: #16a34a;
-   --accent-dark: #15803d;
-   --accent-bg: #f0fdf4;
-   --accent-border: #bbf7d0;
+  /* Compliance tokens */
+  --c-primary: #1B4FD8;
+  --c-primary-light: #EEF2FF;
+  --c-primary-dark: #1339A8;
+  --c-success: #1D9E75;
+  --c-success-light: #ECFDF5;
+  --c-error: #E24B4A;
+  --c-error-light: #FEF2F2;
+  --c-warning: #BA7517;
+  --c-warning-light: #FFFBEB;
+  --c-bg: #F8FAFC;
+  --c-bg-white: #FFFFFF;
+  --c-border: #E2E8F0;
+  --c-border-strong: #CBD5E1;
+  --c-text-heading: #0F172A;
+  --c-text-body: #475569;
+  --c-text-muted: #94A3B8;
 
-   /* Orange */
-   --orange: #ea580c;
-   --orange-bg: #fff7ed;
-   --orange-border: #fed7aa;
-
-   /* Statuts */
-   --status-green: #16a34a;
-   --status-green-bg: #f0fdf4;
-   --status-orange: #ea580c;
-   --status-orange-bg: #fff7ed;
-   --status-red: #dc2626;
-   --status-red-bg: #fef2f2;
-
-   /* Sidebar */
-   --sidebar-bg: #ffffff;
-   --sidebar-width: 210px;
-
-   /* Shadow */
-   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-
-   /* Typography */
-   --sans: system-ui, "Segoe UI", Roboto, sans-serif;
-   --mono: ui-monospace, Consolas, monospace;
-
-   font: 16px/150% var(--sans);
-   letter-spacing: 0.1px;
-   color: var(--text);
-   background: var(--bg);
-   font-synthesis: none;
-   text-rendering: optimizeLegibility;
-   -webkit-font-smoothing: antialiased;
+  font: 16px/150% var(--sans);
+  letter-spacing: 0.1px;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
-body {
-   margin: 0;
-}
+body { margin: 0; }
 
 #root {
-   width: 100%;
-   max-width: 100%;
-   margin: 0;
-   text-align: left;
-   border: none;
-   min-height: 100svh;
-   display: flex;
-   flex-direction: row;
-   box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  text-align: left;
+  border: none;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: row;
+  box-sizing: border-box;
 }
 
-h1,
-h2,
-h3 {
-   font-family: var(--sans);
-   font-weight: 600;
-   color: var(--text-h);
-   margin: 0;
+h1, h2, h3 {
+  font-family: var(--sans);
+  font-weight: 600;
+  color: var(--text-h);
+  margin: 0;
 }
 
-p {
-   margin: 0;
-}
+p { margin: 0; }
+* { box-sizing: border-box; }
 
-* {
-   box-sizing: border-box;
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }

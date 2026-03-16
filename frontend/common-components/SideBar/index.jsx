@@ -2,13 +2,21 @@ import { useState, useEffect } from "react";
 import "./SideBar.css";
 
 const NAV = [
-   { href: "http://localhost:5173", label: "Conformité", port: "5173" },
-   { href: "http://localhost:5174", label: "CRM Fournisseurs", port: "5174" },
+   { href: "http://localhost:5174/",    label: "Upload",           port: "5174", path: "/"    },
+   { href: "http://localhost:5174/crm", label: "CRM Fournisseurs", port: "5174", path: "/crm" },
+   { href: "http://localhost:5173/",    label: "Conformité",        port: "5173", path: "/"    },
 ];
+
+function isLinkActive(item) {
+   const port = window.location.port;
+   const path = window.location.pathname;
+   if (port !== item.port) return false;
+   if (item.path === "/") return path === "/";
+   return path === item.path || path.startsWith(item.path + "/");
+}
 
 function Sidebar() {
    const [health, setHealth] = useState(null);
-   const currentPort = window.location.port;
 
    useEffect(() => {
       let alive = true;
@@ -43,19 +51,16 @@ function Sidebar() {
          {/* Nav */}
          <nav className="sidebar-nav">
             <div className="sidebar-nav-label">Applications</div>
-            {NAV.map((item) => {
-               const isActive = currentPort === item.port;
-               return (
-                  <a
-                     key={item.href}
-                     href={item.href}
-                     className={`sidebar-link${isActive ? " active" : ""}`}
-                  >
-                     <span className="sidebar-link-dot" />
-                     {item.label}
-                  </a>
-               );
-            })}
+            {NAV.map((item) => (
+               <a
+                  key={item.href}
+                  href={item.href}
+                  className={`sidebar-link${isLinkActive(item) ? " active" : ""}`}
+               >
+                  <span className="sidebar-link-dot" />
+                  {item.label}
+               </a>
+            ))}
          </nav>
 
          {/* Health */}

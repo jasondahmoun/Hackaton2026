@@ -1,14 +1,21 @@
-import Header from "@common/Header";
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Sidebar from '@common/SideBar'
+import Upload from './pages/Upload'
+import CRM from './pages/CRM'
+import './App.css'
 
-function App() {
-   return (
-      <div>
-         <Header />
-         <main>
-            <h1>CRM</h1>
-         </main>
+export default function App() {
+  return (
+    <BrowserRouter>
+      <div className="app-shell">
+        <Sidebar />
+        <main className="app-main">
+          <Routes>
+            <Route path="/" element={<Upload />} />
+            <Route path="/crm" element={<CRM />} />
+          </Routes>
+        </main>
       </div>
-   );
+    </BrowserRouter>
+  )
 }
-
-export default App;

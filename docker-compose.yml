@@ -1,49 +1,61 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  frontend:
-    build: ./frontend
-    container_name: react_frontend
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    networks:
-      - app_network
-    depends_on:
-      - backend
+   frontend-compliance:
+      build: ./frontend/frontend-compliance
+      container_name: frontend-compliance
+      ports:
+         - "5173:5173"
+      volumes:
+         - ./frontend/frontend-compliance:/app
+         - /app/node_modules
+      networks:
+         - app_network
+      depends_on:
+         - backend
 
-  backend:
-    build: .
-    container_name: fastapi_backend
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./data:/app/data
-      - .:/app
-    environment:
-      - MONGODB_URL=mongodb://mongodb:27017
-      - MONGODB_DB=ocr_database
-    depends_on:
-      - mongodb
-    networks:
-      - app_network
+   frontend-crm:
+      build: ./frontend/frontend-crm
+      container_name: frontend-crm
+      ports:
+         - "5174:5174"
+      volumes:
+         - ./frontend/frontend-crm:/app
+         - /app/node_modules
+      networks:
+         - app_network
+      depends_on:
+         - backend
 
-  mongodb:
-    image: mongo:7.0
-    container_name: mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - app_network
+   backend:
+      build: .
+      container_name: fastapi_backend
+      ports:
+         - "8000:8000"
+      volumes:
+         - ./data:/app/data
+         - .:/app
+      environment:
+         - MONGODB_URL=mongodb://mongodb:27017
+         - MONGODB_DB=ocr_database
+      depends_on:
+         - mongodb
+      networks:
+         - app_network
+
+   mongodb:
+      image: mongo:7.0
+      container_name: mongodb
+      ports:
+         - "27017:27017"
+      volumes:
+         - mongodb_data:/data/db
+      networks:
+         - app_network
 
 volumes:
-  mongodb_data:
-
+   mongodb_data:
 
 networks:
-  app_network:
-    driver: bridge
+   app_network:
+      driver: bridge

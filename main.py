@@ -2,18 +2,22 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from motor.motor_asyncio import AsyncIOMotorClient
 from contextlib import asynccontextmanager
 import pytesseract
+from mongo_init.init import init_mongodb
 from PIL import Image
 import io
 import os
 from datetime import datetime
 
-MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+MONGODB_URL = os.getenv("MONGODB_URL")
 MONGODB_DB = os.getenv("MONGODB_DB", "ocr_database")
 
+if not MONGODB_URL:
+    raise RuntimeError("MONGODB_URL non définie")
 app_state = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    init_mongodb()
     app_state["mongodb_client"] = AsyncIOMotorClient(MONGODB_URL)
     app_state["db"] = app_state["mongodb_client"][MONGODB_DB]
     yield

@@ -24,7 +24,7 @@ function AppNav() {
                "app-nav__link" + (isActive ? " app-nav__link--active" : "")
             }
          >
-            📊 Tableau de bord
+            Tableau de bord
          </NavLink>
          <NavLink
             to="/documents"
@@ -32,7 +32,7 @@ function AppNav() {
                "app-nav__link" + (isActive ? " app-nav__link--active" : "")
             }
          >
-            📄 Documents
+            Documents
          </NavLink>
       </nav>
    );

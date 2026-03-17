@@ -1,0 +1,121 @@
+/* ─── Tokens ─────────────────────────────────────────── */
+:root {
+   --login-font: "Inter", system-ui, sans-serif;
+   --login-bg-page: #f0f2f5;
+   --login-bg-card: #ffffff;
+   --login-bg-input: #f4f6f9;
+   --login-bg-input-focus: #edf0f7;
+   --login-color-primary: #4f46e5;
+   --login-color-primary-ring: rgba(79, 70, 229, 0.18);
+   --login-color-heading: #0f172a;
+   --login-color-placeholder: #94a3b8;
+   --login-color-error: #dc2626;
+
+   --login-radius-card: 16px;
+   --login-radius-input: 10px;
+   --login-radius-btn: 10px;
+   --login-shadow-card: 0 8px 32px rgba(15, 23, 42, 0.1);
+
+   --login-fs-h1: 20px;
+   --login-fs-input: 14px;
+   --login-fs-btn: 14px;
+   --login-fw-heading: 600;
+   --login-fw-btn: 500;
+}
+
+/* ─── Page ────────────────────────────────────────────── */
+.login-page {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   width: 100%;
+   height: 100%;
+   min-height: 0;
+   background-color: var(--login-bg-page);
+   font-family: var(--login-font);
+   box-sizing: border-box;
+   position: absolute;
+   top: 0;
+   left: 0;
+}
+
+/* ─── Carte ───────────────────────────────────────────── */
+.login-card {
+   position: static;
+   display: flex;
+   flex-direction: column;
+   gap: 12px;
+   width: 100%;
+   max-width: 360px;
+   background: var(--login-bg-card);
+   padding: 36px 32px;
+   border-radius: var(--login-radius-card);
+   box-shadow: var(--login-shadow-card);
+}
+
+.login-card h1 {
+   font-size: var(--login-fs-h1);
+   font-weight: var(--login-fw-heading);
+   color: var(--login-color-heading);
+   margin: 0 0 8px;
+   text-align: center;
+}
+
+/* ─── Inputs — sans border ────────────────────────────── */
+.login-card input {
+   width: 100%;
+   padding: 11px 14px;
+   border: none;
+   border-radius: var(--login-radius-input);
+   background: var(--login-bg-input);
+   font-family: var(--login-font);
+   font-size: var(--login-fs-input);
+   color: var(--login-color-heading);
+   box-sizing: border-box;
+   outline: none;
+   transition:
+      background 0.15s,
+      box-shadow 0.15s;
+}
+
+.login-card input::placeholder {
+   color: var(--login-color-placeholder);
+}
+
+.login-card input:focus {
+   background: var(--login-bg-input-focus);
+   box-shadow: 0 0 0 3px var(--login-color-primary-ring);
+}
+
+/* ─── Erreur ──────────────────────────────────────────── */
+.login-card p {
+   font-size: 13px;
+   color: var(--login-color-error);
+   margin: 0;
+   text-align: center;
+}
+
+/* ─── Bouton ──────────────────────────────────────────── */
+.login-button {
+   width: 100%;
+   padding: 11px;
+   margin-top: 4px;
+   border: none;
+   border-radius: var(--login-radius-btn);
+   font-family: var(--login-font);
+   font-size: var(--login-fs-btn);
+   font-weight: var(--login-fw-btn);
+   color: #ffffff;
+   background: var(--login-color-primary);
+   cursor: pointer;
+   transition:
+      filter 0.15s,
+      transform 0.1s;
+}
+
+.login-button:hover {
+   filter: brightness(0.9);
+}
+.login-button:active {
+   transform: scale(0.98);
+}

@@ -9,4 +9,14 @@ export default defineConfig({
          "@common": path.resolve(__dirname, "../common-components"),
       },
    },
+   server: {
+      port: 5173,
+      host: true,
+      fs: {
+         allow: [".."],
+      },
+   },
+   optimizeDeps: {
+      include: ["jose", "js-cookie"],
+   },
 });

@@ -1,62 +1,58 @@
 /* ── Layout shell ───────────────────────────────────────── */
 .app-shell {
-  display: flex;
-  width: 100%;
-  min-height: 100svh;
+   display: flex;
+   width: 100%;
+   min-height: 100svh;
 }
 
 .app-main {
-  flex: 1;
-  overflow-y: auto;
-  background: var(--c-bg);
-  min-width: 0;
-  padding: 32px 36px 48px;
-  font-family: var(--sans);
+   flex: 1;
+   overflow-y: auto;
+   background: var(--c-bg);
+   min-width: 0;
+   padding: 32px 36px 48px;
+   font-family: var(--sans);
+   position: relative;
 }
 
 /* ── Navigation interne conformité ─────────────────────── */
 .app-nav {
-  display: flex;
-  gap: 4px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--c-border);
-  margin-bottom: 28px;
-  flex-wrap: wrap;
+   display: flex;
+   gap: 4px;
+   padding-bottom: 20px;
+   border-bottom: 1px solid var(--c-border);
+   margin-bottom: 28px;
+   flex-wrap: wrap;
 }
 
 .app-nav__link {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 13px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--c-text-body);
-  text-decoration: none;
-  transition: all 0.15s;
+   display: flex;
+   align-items: center;
+   gap: 7px;
+   padding: 7px 13px;
+   border-radius: 8px;
+   font-size: 13px;
+   font-weight: 500;
+   color: var(--c-text-body);
+   text-decoration: none;
+   transition: all 0.15s;
 }
 
 .app-nav__link:hover {
-  background: var(--c-bg);
-  color: var(--c-text-heading);
+   background: var(--c-bg);
+   color: var(--c-text-heading);
 }
 
 .app-nav__link--active {
-  background: var(--c-primary-light);
-  color: var(--c-primary);
-  font-weight: 600;
+   background: var(--c-primary-light);
+   color: var(--c-primary);
+   font-weight: 600;
 }
 
 /* ── Shared skeleton ────────────────────────────────────── */
 .skeleton-block {
-  background: linear-gradient(
-    90deg,
-    #e2e8f0 25%,
-    #f1f5f9 50%,
-    #e2e8f0 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
-  border-radius: 4px;
+   background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+   background-size: 200% 100%;
+   animation: shimmer 1.4s infinite;
+   border-radius: 4px;
 }

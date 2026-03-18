@@ -2,6 +2,8 @@ import { useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDropzone } from 'react-dropzone'
 import { uploadDocument, runOCR, extractFields, classifyDocument } from '../api/client'
+import { getBadgeClass, formatSiret } from '../utils/formatters'
+import Lightbox from '../components/Lightbox'
 
 // ── Helpers ──────────────────────────────────────────────
 const STEPS = ['Chargement', 'OCR', 'Extraction', 'Classification', 'Terminé']
@@ -12,21 +14,6 @@ function stepIndex(status) {
   return i === -1 ? -1 : i
 }
 
-function getBadgeClass(type) {
-  const map = {
-    facture: 'badge-facture', devis: 'badge-devis', kbis: 'badge-kbis',
-    urssaf: 'badge-urssaf', rib: 'badge-rib',
-    'attestation SIRET': 'badge-siret', 'attestation siret': 'badge-siret',
-  }
-  return map[type?.toLowerCase()] || 'badge-default'
-}
-
-function formatSiret(s) {
-  if (!s) return s
-  const clean = s.replace(/\s/g, '')
-  if (clean.length === 14) return `${clean.slice(0,3)} ${clean.slice(3,6)} ${clean.slice(6,9)} ${clean.slice(9)}`
-  return clean
-}
 
 function detectAnomalies(files) {
   const done = files.filter(f => f.status === 'done' && f.fields)
@@ -182,7 +169,7 @@ function ExtractedFields({ fields }) {
   )
 }
 
-function FileCard({ file, onSendToCRM }) {
+function FileCard({ file, onSendToCRM, onOpenImage }) {
   const [expanded, setExpanded] = useState(true)
 
   const statusColors = {
@@ -229,7 +216,7 @@ function FileCard({ file, onSendToCRM }) {
             {file.status === 'extracting' && 'Analyse des entités…'}
             {file.status === 'classifying' && 'Classification du document…'}
             {file.status === 'done' && `Traitement terminé${file.fields ? ' · Champs extraits' : ''}`}
-            {file.status === 'error' && 'Erreur de traitement'}
+            {file.status === 'error' && (file.errorMessage || 'Erreur de traitement')}
           </div>
         </div>
         <button
@@ -247,6 +234,23 @@ function FileCard({ file, onSendToCRM }) {
       {expanded && file.status === 'done' && (
         <>
           <div style={{ height: 1, background: 'var(--border)', margin: '12px 0' }} />
+
+          {file.previewUrl && (
+            <div style={{ marginBottom: 12 }}>
+              <img
+                src={file.previewUrl}
+                alt={file.name}
+                onClick={() => onOpenImage(file.previewUrl)}
+                style={{
+                  maxWidth: '100%', maxHeight: 220,
+                  borderRadius: 6, border: '1px solid var(--border)',
+                  objectFit: 'contain', display: 'block',
+                  cursor: 'zoom-in',
+                }}
+              />
+            </div>
+          )}
+
           <ExtractedFields fields={file.fields} />
 
           {file.anomalies?.length > 0 && (
@@ -276,9 +280,85 @@ function FileCard({ file, onSendToCRM }) {
   )
 }
 
+// ── DEBUG PANEL (temporaire) ──────────────────────────────
+function DebugPanel({ files }) {
+  const [open, setOpen] = useState(false)
+  const done = files.filter(f => f.status === 'done' || f.status === 'error')
+  if (!done.length) return null
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 16, right: 16, zIndex: 9999,
+      width: open ? 480 : 'auto',
+      background: '#0f172a', color: '#e2e8f0',
+      borderRadius: 10, boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+      fontFamily: 'monospace', fontSize: 12,
+      overflow: 'hidden',
+    }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', padding: '8px 14px',
+          background: '#1e293b', border: 'none', cursor: 'pointer',
+          color: '#94a3b8', fontSize: 12, textAlign: 'left',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}
+      >
+        <span style={{ color: '#22d3ee' }}>◉</span>
+        DEBUG — {done.length} doc{done.length > 1 ? 's' : ''} traité{done.length > 1 ? 's' : ''}
+        <span style={{ marginLeft: 'auto' }}>{open ? '▼' : '▲'}</span>
+      </button>
+
+      {open && (
+        <div style={{ maxHeight: 420, overflowY: 'auto', padding: '12px 14px' }}>
+          {done.map(f => (
+            <div key={f.id} style={{ marginBottom: 20, borderBottom: '1px solid #334155', paddingBottom: 12 }}>
+              <div style={{ color: '#f472b6', fontWeight: 700, marginBottom: 6 }}>
+                📄 {f.name}
+              </div>
+
+              {f.status === 'error' ? (
+                <div style={{ color: '#f87171' }}>❌ {f.errorMessage}</div>
+              ) : (
+                <>
+                  <div style={{ marginBottom: 4 }}>
+                    <span style={{ color: '#94a3b8' }}>type : </span>
+                    <span style={{ color: '#34d399' }}>{f.type || '—'}</span>
+                  </div>
+                  <div style={{ marginBottom: 4 }}>
+                    <span style={{ color: '#94a3b8' }}>docId : </span>
+                    <span style={{ color: '#fbbf24' }}>{f.docId || '—'}</span>
+                  </div>
+                  <div style={{ color: '#94a3b8', marginBottom: 4 }}>champs :</div>
+                  {f.fields && Object.keys(f.fields).length > 0
+                    ? Object.entries(f.fields).map(([k, v]) => (
+                        <div key={k} style={{ paddingLeft: 12 }}>
+                          <span style={{ color: (k === 'montantHT' || k === 'montantTTC') ? '#fbbf24' : '#7dd3fc' }}>{k}</span>
+                          <span style={{ color: '#64748b' }}> : </span>
+                          <span style={{ color: (k === 'montantHT' || k === 'montantTTC') ? '#fbbf24' : '#e2e8f0', fontWeight: (k === 'montantHT' || k === 'montantTTC') ? 700 : 400 }}>{v}</span>
+                        </div>
+                      ))
+                    : <div style={{ paddingLeft: 12, color: '#64748b' }}>aucun champ extrait</div>
+                  }
+                  {f.anomalies?.length > 0 && (
+                    <div style={{ marginTop: 6, color: '#fb923c' }}>
+                      ⚠ anomalies : {f.anomalies.map(a => a.message).join(', ')}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Upload() {
   const [files, setFiles] = useState([])
   const [alerts, setAlerts] = useState([])
+  const [lightboxUrl, setLightboxUrl] = useState(null)
   const navigate = useNavigate()
   const processingRef = useRef(new Set())
 
@@ -297,27 +377,34 @@ export default function Upload() {
 
     try {
       updateFile(id, { status: 'uploading' })
-      const uploaded = await uploadDocument(file)
+      await uploadDocument(file)
+      console.log(`[Upload] Fichier accepté : ${file.name} (${file.type}, ${(file.size / 1024).toFixed(1)} Ko)`)
 
       updateFile(id, { status: 'ocr' })
-      await runOCR(file)
+      const ocrResult = await runOCR(file)
+      console.log(`[OCR] Résultat brut pour "${file.name}" :`, ocrResult)
+      console.log(`[OCR] Texte extrait :\n${ocrResult?.text}`)
 
       updateFile(id, { status: 'extracting' })
-      const extracted = await extractFields(uploaded.id, file.name)
+      const extracted = await extractFields(ocrResult, file.name)
+      console.log(`[Extraction]  Champs extraits pour "${file.name}" :`, extracted.fields)
+      console.log(`[Extraction]  Type détecté : ${extracted.type}`)
+      console.log(`[Extraction] ⚠ Anomalies :`, extracted.anomalies)
 
       updateFile(id, { status: 'classifying' })
-      const classified = await classifyDocument(uploaded.id, file.name)
+      const classified = await classifyDocument(ocrResult, file.name)
+      console.log(`[Classification]  Type final : ${classified.type}`)
 
       updateFile(id, {
         status: 'done',
         type: classified.type || extracted.type,
         fields: extracted.fields,
         anomalies: extracted.anomalies || [],
-        docId: uploaded.id,
+        docId: ocrResult?.id || id,
       })
     } catch (err) {
-      console.error(err)
-      updateFile(id, { status: 'error' })
+      const message = err?.response?.data?.detail || err?.message || 'Erreur inconnue'
+      updateFile(id, { status: 'error', errorMessage: message })
     } finally {
       processingRef.current.delete(id)
     }
@@ -332,6 +419,7 @@ export default function Upload() {
       type: null,
       fields: null,
       anomalies: [],
+      previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : null,
     }))
     setFiles(prev => [...prev, ...newEntries])
     newEntries.forEach(entry => runPipeline(entry))
@@ -354,6 +442,7 @@ export default function Upload() {
       filename: file.name,
       type: file.type,
       fields: file.fields,
+      previewUrl: file.previewUrl || null,
     })
     sessionStorage.setItem('pendingCRM', JSON.stringify(existing))
     navigate('/crm')
@@ -479,10 +568,14 @@ export default function Upload() {
             key={f.id}
             file={f}
             onSendToCRM={handleSendToCRM}
+            onOpenImage={setLightboxUrl}
           />
         ))}
-       
+
       </div>
+
+      <DebugPanel files={files} />
+      <Lightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
     </>
   )
 }

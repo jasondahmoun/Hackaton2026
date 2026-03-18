@@ -63,3 +63,17 @@ export async function fetchAllDocuments() {
   if (!res.ok) throw new Error("Erreur réseau /api/documents");
   return res.json();
 }
+
+export async function fetchDocumentByRef(ref) {
+  // Cherche d'abord par ID exact, sinon par nom de fichier
+  try {
+    const byId = await fetch(`/documents/${ref}`);
+    if (byId.ok) return byId.json();
+  } catch (_) {}
+
+  const bySearch = await fetch(`/documents?search=${encodeURIComponent(ref)}&limit=1`);
+  if (!bySearch.ok) throw new Error("Document introuvable");
+  const data = await bySearch.json();
+  if (!data.documents?.length) throw new Error(`Aucun document trouvé pour "${ref}"`);
+  return data.documents[0];
+}

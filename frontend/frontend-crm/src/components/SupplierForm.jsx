@@ -23,6 +23,13 @@ export default function SupplierForm({ supplier, onSave, onCancel }) {
     if (pending.length > 0) {
       const doc = pending[pending.length - 1]
       handleAutoFill({ id: doc.docId, fields: doc.fields, type: doc.type, filename: doc.filename })
+      setForm(prev => ({
+        ...prev,
+        documents: [
+          ...(prev.documents || []),
+          { id: doc.docId, type: doc.type, filename: doc.filename, status: 'done', previewUrl: doc.previewUrl || null },
+        ],
+      }))
       sessionStorage.removeItem('pendingCRM')
     }
   }, [supplier.id])

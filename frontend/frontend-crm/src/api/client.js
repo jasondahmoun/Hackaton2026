@@ -1,140 +1,96 @@
 import axios from 'axios'
-import { MOCK_SUPPLIERS, MOCK_DOCUMENTS_EXTRACTED } from '../mock/data'
-
-// Passer à false quand le backend est prêt
-const USE_MOCK = true
+import { MOCK_SUPPLIERS } from '../mock/data'
 
 const api = axios.create({
   baseURL: 'http://localhost:8000',
-  timeout: 10000,
+  timeout: 15000,
 })
 
-function delay(ms) {
-  return new Promise((r) => setTimeout(r, ms))
+// ── Parseur de texte OCR → champs structurés ─────────────
+function parseOCRText(text) {
+  const fields = {}
+
+  const siretMatch = text.match(/\b(\d{3}[\s]?\d{3}[\s]?\d{3}[\s]?\d{5})\b/)
+  if (siretMatch) fields.siret = siretMatch[1].replace(/\s/g, '')
+
+  const tvaMatch = text.match(/FR\s*\d{2}\s*\d{9}/i)
+  if (tvaMatch) fields.tva = tvaMatch[0].replace(/\s/g, '')
+
+  const htMatch = text.match(/(?:montant\s*h\.?t\.?|ht)[^\d]*(\d[\d\s,.]*)\s*€?/i)
+  if (htMatch) fields.montantHT = htMatch[1].trim() + ' €'
+
+  const ttcMatch = text.match(/(?:montant\s*t\.?t\.?c\.?|ttc)[^\d]*(\d[\d\s,.]*)\s*€?/i)
+  if (ttcMatch) fields.montantTTC = ttcMatch[1].trim() + ' €'
+
+  const dates = [...text.matchAll(/\b(\d{2})[\/\-](\d{2})[\/\-](\d{4})\b/g)].map(m => m[0])
+  if (dates[0]) fields.dateEmission = dates[0]
+  if (dates[1]) fields.dateEcheance = dates[1]
+
+  const ibanMatch = text.match(/FR\d{2}[\s\d]{20,30}/i)
+  if (ibanMatch) fields.iban = ibanMatch[0].replace(/\s+/g, ' ').trim()
+
+  const bicMatch = text.match(/\b([A-Z]{4}FR[A-Z0-9]{2,5})\b/)
+  if (bicMatch) fields.bic = bicMatch[1]
+
+  return fields
 }
 
-// Génère un faux résultat OCR + extraction à partir du nom de fichier
-function generateMockExtraction(filename) {
-  const name = filename.toLowerCase()
-  let type = 'facture'
-  if (name.includes('kbis')) type = 'kbis'
-  else if (name.includes('urssaf')) type = 'urssaf'
-  else if (name.includes('rib')) type = 'rib'
-  else if (name.includes('devis')) type = 'devis'
-  else if (name.includes('siret') || name.includes('attestation')) type = 'attestation SIRET'
-
-  const siret = `${Math.floor(Math.random() * 90000 + 10000)}${Math.floor(Math.random() * 90000 + 10000)}${Math.floor(Math.random() * 90000 + 10000)}`
-
-  const fields = { siret }
-  if (type === 'facture' || type === 'devis') {
-    const ht = (Math.random() * 20000 + 500).toFixed(2)
-    Object.assign(fields, {
-      tva: `FR${Math.floor(Math.random() * 90 + 10)}${siret.slice(0, 9)}`,
-      montantHT: `${parseFloat(ht).toLocaleString('fr-FR')} €`,
-      montantTTC: `${(parseFloat(ht) * 1.2).toLocaleString('fr-FR')} €`,
-      dateEmission: new Date().toLocaleDateString('fr-FR'),
-    })
-  }
-  if (type === 'kbis') {
-    const futureDate = new Date()
-    futureDate.setFullYear(futureDate.getFullYear() + 1)
-    Object.assign(fields, {
-      raisonSociale: 'Entreprise Demo SARL',
-      adresse: '1 rue de la Demo, 75000 Paris',
-      dateEmission: new Date().toLocaleDateString('fr-FR'),
-      dateEcheance: futureDate.toLocaleDateString('fr-FR'),
-    })
-  }
-  if (type === 'urssaf') {
-    const expiry = new Date()
-    expiry.setMonth(expiry.getMonth() + 6)
-    Object.assign(fields, {
-      dateEmission: new Date().toLocaleDateString('fr-FR'),
-      dateEcheance: expiry.toLocaleDateString('fr-FR'),
-    })
-  }
-  if (type === 'rib') {
-    Object.assign(fields, {
-      iban: 'FR76 3000 4000 0100 0000 0000 000',
-      bic: 'BNPAFRPP',
-    })
-  }
-
-  return { type, fields, anomalies: [] }
+function detectType(filename, text = '') {
+  const s = (filename + ' ' + text).toLowerCase()
+  if (s.includes('kbis')) return 'kbis'
+  if (s.includes('urssaf') || s.includes('vigilance')) return 'urssaf'
+  if (s.includes('rib') || s.includes('iban')) return 'rib'
+  if (s.includes('devis')) return 'devis'
+  if (s.includes('siret') || s.includes('attestation')) return 'attestation SIRET'
+  return 'facture'
 }
 
-// — Upload
+// ── Pipeline Upload ───────────────────────────────────────
+
+// Étape 1 : upload (pas d'endpoint dédié, on génère un id local)
 export async function uploadDocument(file) {
-  if (USE_MOCK) {
-    await delay(600)
-    return { id: `doc-${Date.now()}`, filename: file.name }
-  }
-  const form = new FormData()
-  form.append('file', file)
-  const res = await api.post('/upload', form)
-  return res.data
+  return { id: `doc-${Date.now()}`, filename: file.name }
 }
 
-// — OCR
+// Étape 2 : OCR réel via POST /ocr
+// Lance une erreur si le backend échoue ou si c'est un PDF
 export async function runOCR(file) {
-  if (USE_MOCK) {
-    await delay(1000)
-    return { text: 'SIRET: 12345678901234\nMontant HT: 1500 EUR\nMontant TTC: 1800 EUR\nTVA: FR12345678901' }
+  if (file.type === 'application/pdf') {
+    throw new Error('Les PDF ne sont pas encore supportés par l\'OCR. Utilisez une image (JPG, PNG).')
   }
+
   const form = new FormData()
   form.append('file', file)
-  try {
-    const res = await api.post('/ocr', form)
-    return res.data
-  } catch {
-    return { text: '' }
-  }
+
+  const res = await api.post('/ocr', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data  // { id, filename, text, timestamp }
 }
 
-// — Extraction entités
-export async function extractFields(docId, filename) {
-  if (USE_MOCK) {
-    await delay(800)
-    return generateMockExtraction(filename)
+// Étape 3 : extraction des champs depuis le texte OCR
+export async function extractFields(ocrResult, filename) {
+  if (!ocrResult?.text?.trim()) {
+    throw new Error('Le texte extrait est vide. Vérifiez la qualité de l\'image.')
   }
-  try {
-    const res = await api.get(`/documents/${docId}`)
-    return res.data
-  } catch {
-    return generateMockExtraction(filename)
-  }
+  const fields = parseOCRText(ocrResult.text)
+  const type = detectType(filename, ocrResult.text)
+  return { type, fields, anomalies: [], ocrId: ocrResult.id }
 }
 
-// — Classification
-export async function classifyDocument(docId, filename) {
-  if (USE_MOCK) {
-    await delay(500)
-    const { type } = generateMockExtraction(filename)
-    return { type }
-  }
-  try {
-    const res = await api.post('/classify', { docId, filename })
-    return res.data
-  } catch {
-    const { type } = generateMockExtraction(filename)
-    return { type }
-  }
+// Étape 4 : classification
+export async function classifyDocument(ocrResult, filename) {
+  return { type: detectType(filename, ocrResult?.text || '') }
 }
 
-// — Liste documents
-export async function getDocuments() {
-  if (USE_MOCK) return Object.values(MOCK_DOCUMENTS_EXTRACTED)
-  try {
-    const res = await api.get('/documents')
-    return res.data.documents || []
-  } catch {
-    return Object.values(MOCK_DOCUMENTS_EXTRACTED)
-  }
+// ── Corrections ───────────────────────────────────────────
+export async function getCorrections(limit = 50) {
+  const res = await api.get(`/corrections?limit=${limit}`)
+  return res.data.corrections
 }
 
-// — Fournisseurs
+// ── CRM / Fournisseurs ────────────────────────────────────
 export async function getSuppliers() {
-  if (USE_MOCK) return MOCK_SUPPLIERS
   try {
     const res = await api.get('/suppliers')
     return res.data
@@ -144,10 +100,6 @@ export async function getSuppliers() {
 }
 
 export async function saveSupplier(supplier) {
-  if (USE_MOCK) {
-    await delay(400)
-    return { ...supplier, id: supplier.id || `sup-${Date.now()}` }
-  }
   try {
     const res = await api.post('/suppliers', supplier)
     return res.data
@@ -156,7 +108,7 @@ export async function saveSupplier(supplier) {
   }
 }
 
-// — Health check
+// ── Health check ──────────────────────────────────────────
 export async function healthCheck() {
   try {
     const res = await api.get('/health', { timeout: 3000 })

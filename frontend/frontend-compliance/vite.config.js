@@ -15,6 +15,10 @@ export default defineConfig({
       fs: {
          allow: [".."],
       },
+      proxy: {
+         "/uploads": "http://localhost:8000",
+         "/documents": "http://localhost:8000",
+      },
    },
    optimizeDeps: {
       include: ["jose", "js-cookie"],

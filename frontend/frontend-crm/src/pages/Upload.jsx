@@ -28,12 +28,10 @@ function formatSiret(s) {
   return clean
 }
 
-// ── Détection anomalies inter-documents ─────────────────
 function detectAnomalies(files) {
   const done = files.filter(f => f.status === 'done' && f.fields)
   const alerts = []
 
-  // SIRET mismatch
   const sirets = done
     .filter(f => f.fields.siret)
     .map(f => ({ name: f.name, siret: f.fields.siret.replace(/\s/g, '') }))
@@ -50,7 +48,6 @@ function detectAnomalies(files) {
     }
   }
 
-  // Documents expirés
   done.forEach(f => {
     if (f.fields.dateEcheance) {
       const [d, m, y] = f.fields.dateEcheance.split('/')
@@ -78,7 +75,6 @@ function detectAnomalies(files) {
   return alerts
 }
 
-// ── Composant ProgressSteps ──────────────────────────────
 function ProgressSteps({ status }) {
   const current = stepIndex(status)
   const isError = status === 'error'
@@ -151,7 +147,6 @@ function Spinner() {
   )
 }
 
-// ── Composant ExtractedFields ────────────────────────────
 function ExtractedFields({ fields }) {
   if (!fields) return null
   const labels = {
@@ -187,7 +182,6 @@ function ExtractedFields({ fields }) {
   )
 }
 
-// ── Composant FileCard ───────────────────────────────────
 function FileCard({ file, onSendToCRM }) {
   const [expanded, setExpanded] = useState(true)
 
@@ -210,7 +204,6 @@ function FileCard({ file, onSendToCRM }) {
       transition: 'border-color 0.3s',
       marginBottom: 10,
     }}>
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
         <span style={{ fontSize: 20 }}>
           {file.name.endsWith('.pdf') ? '📄' : '🖼'}
@@ -247,18 +240,15 @@ function FileCard({ file, onSendToCRM }) {
         </button>
       </div>
 
-      {/* Pipeline steps */}
       {file.status !== 'waiting' && (
         <ProgressSteps status={file.status} />
       )}
 
-      {/* Expanded: champs + actions */}
       {expanded && file.status === 'done' && (
         <>
           <div style={{ height: 1, background: 'var(--border)', margin: '12px 0' }} />
           <ExtractedFields fields={file.fields} />
 
-          {/* Anomalies du fichier */}
           {file.anomalies?.length > 0 && (
             <div style={{ marginTop: 10 }}>
               {file.anomalies.map((a, i) => (
@@ -272,7 +262,6 @@ function FileCard({ file, onSendToCRM }) {
             </div>
           )}
 
-          {/* Boutons d'action */}
           <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
             <button className="btn btn-primary btn-sm" onClick={() => onSendToCRM(file)}>
               Envoyer au CRM
@@ -287,47 +276,38 @@ function FileCard({ file, onSendToCRM }) {
   )
 }
 
-// ── Page Upload ──────────────────────────────────────────
 export default function Upload() {
   const [files, setFiles] = useState([])
   const [alerts, setAlerts] = useState([])
   const navigate = useNavigate()
   const processingRef = useRef(new Set())
 
-  // Met à jour un fichier dans la liste
   const updateFile = useCallback((id, patch) => {
     setFiles(prev => {
       const next = prev.map(f => f.id === id ? { ...f, ...patch } : f)
-      // Recalcul des alertes inter-docs
       setAlerts(detectAnomalies(next))
       return next
     })
   }, [])
 
-  // Pipeline de traitement
   async function runPipeline(fileEntry) {
     const { id, file } = fileEntry
     if (processingRef.current.has(id)) return
     processingRef.current.add(id)
 
     try {
-      // 1. Upload
       updateFile(id, { status: 'uploading' })
       const uploaded = await uploadDocument(file)
 
-      // 2. OCR
       updateFile(id, { status: 'ocr' })
       await runOCR(file)
 
-      // 3. Extraction
       updateFile(id, { status: 'extracting' })
       const extracted = await extractFields(uploaded.id, file.name)
 
-      // 4. Classification
       updateFile(id, { status: 'classifying' })
       const classified = await classifyDocument(uploaded.id, file.name)
 
-      // 5. Done
       updateFile(id, {
         status: 'done',
         type: classified.type || extracted.type,
@@ -354,7 +334,6 @@ export default function Upload() {
       anomalies: [],
     }))
     setFiles(prev => [...prev, ...newEntries])
-    // Lance le pipeline pour chaque fichier
     newEntries.forEach(entry => runPipeline(entry))
   }, [])
 
@@ -369,7 +348,6 @@ export default function Upload() {
   })
 
   function handleSendToCRM(file) {
-    // Stocke les données dans sessionStorage pour le CRM
     const existing = JSON.parse(sessionStorage.getItem('pendingCRM') || '[]')
     existing.push({
       docId: file.docId,
@@ -401,7 +379,6 @@ export default function Upload() {
 
       <div className="page-content">
 
-        {/* Alertes inter-documents */}
         {alerts.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <div style={{
@@ -425,7 +402,6 @@ export default function Upload() {
           </div>
         )}
 
-        {/* Zone de dépôt */}
         <div
           {...getRootProps()}
           style={{
@@ -462,7 +438,6 @@ export default function Upload() {
           </div>
         </div>
 
-        {/* Compteur */}
         {files.length > 0 && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 16,
@@ -491,7 +466,6 @@ export default function Upload() {
           </div>
         )}
 
-        {/* Liste des fichiers */}
         {files.length === 0 && (
           <div className="empty-state">
             <span className="empty-icon">🗂</span>
@@ -507,30 +481,7 @@ export default function Upload() {
             onSendToCRM={handleSendToCRM}
           />
         ))}
-
-        {/* Types de documents supportés */}
-        {files.length === 0 && (
-          <div style={{
-            marginTop: 32,
-            padding: '20px 24px',
-            border: '1px solid var(--border)',
-            borderRadius: 12,
-          }}>
-            <div style={{
-              fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
-              letterSpacing: '0.6px', color: 'var(--text)', marginBottom: 14,
-            }}>
-              Documents supportés
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {['Facture', 'Devis', 'Kbis', 'Attestation URSSAF', 'Attestation SIRET', 'RIB'].map(t => (
-                <span key={t} className={`badge badge-${t.split(' ')[0].toLowerCase()}`}>
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+       
       </div>
     </>
   )

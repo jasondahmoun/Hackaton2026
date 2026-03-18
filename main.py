@@ -21,13 +21,22 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app_state = {}
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if not MONGODB_URL:
+        raise RuntimeError("MONGODB_URL non définie")
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
     init_mongodb()
+
     app_state["mongodb_client"] = AsyncIOMotorClient(MONGODB_URL)
     app_state["db"] = app_state["mongodb_client"][MONGODB_DB]
+
     yield
+
     app_state["mongodb_client"].close()
+
 
 app = FastAPI(
     title="FastAPI OCR Service",
@@ -59,10 +68,11 @@ async def root():
         }
     }
 
+
 @app.get("/health")
 async def health_check():
     try:
-        await app_state["mongodb_client"].admin.command('ping')
+        await app_state["mongodb_client"].admin.command("ping")
         mongodb_status = "connected"
     except Exception as e:
         mongodb_status = f"error: {str(e)}"

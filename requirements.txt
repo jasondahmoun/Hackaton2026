@@ -9,3 +9,6 @@ pydantic-settings==2.1.0
 python-multipart==0.0.6
 scikit-learn==1.4.0
 pdf2image
+opencv-python
+numpy
+pytesseract

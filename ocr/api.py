@@ -18,7 +18,7 @@ def get_db():
     return app_state["db"]
 
 
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "data/uploads")
+UPLOAD_DIR = os.getenv("UPLOAD_DIR") or "data/uploads"
 
 
 @router.post("/documents/upload")
@@ -174,3 +174,78 @@ async def get_ocr_result(document_id: str):
         "document": document,
         "ocr_result": result
     }
+
+@router.get("/corrections")
+async def get_all_corrections(limit: int = 100):
+    db = get_db()
+
+    try:
+        cursor = db.correction.find().sort("created_at", -1).limit(limit)
+        corrections = []
+
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+
+            if "original_id" in doc and isinstance(doc["original_id"], ObjectId):
+                doc["original_id"] = str(doc["original_id"])
+
+            if "created_at" in doc and doc["created_at"] is not None:
+                doc["created_at"] = doc["created_at"].isoformat()
+
+            corrections.append(doc)
+
+        return {
+            "count": len(corrections),
+            "corrections": corrections
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la récupération des corrections : {str(e)}"
+        )
+
+
+@router.get("/corrections/{original_id}")
+async def get_corrections_by_original_id(original_id: str):
+    db = get_db()
+
+    try:
+        object_id = ObjectId(original_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="original_id invalide")
+
+    try:
+        cursor = db.correction.find({"original_id": object_id}).sort("created_at", -1)
+        corrections = []
+
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+
+            if "original_id" in doc and isinstance(doc["original_id"], ObjectId):
+                doc["original_id"] = str(doc["original_id"])
+
+            if "created_at" in doc and doc["created_at"] is not None:
+                doc["created_at"] = doc["created_at"].isoformat()
+
+            corrections.append(doc)
+
+        if not corrections:
+            raise HTTPException(
+                status_code=404,
+                detail="Aucune correction trouvée pour cet original_id"
+            )
+
+        return {
+            "count": len(corrections),
+            "original_id": original_id,
+            "corrections": corrections
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la récupération des corrections : {str(e)}"
+        )

@@ -55,7 +55,7 @@ async def upload_and_process(file: UploadFile = File(...)):
         "user_id": fake_user_id,
         "filename": file.filename,
         "file_url": file_path,
-        "status": "processing",
+        "status": False,
         "created_at": datetime.utcnow()
     }
 
@@ -88,6 +88,7 @@ async def upload_and_process(file: UploadFile = File(...)):
             "extracted_text": extracted_text,
             "confidence": None,
             "language": "fr",
+            "status": False,
             "created_at": datetime.utcnow()
         }
 
@@ -154,7 +155,7 @@ async def get_ocr_result(document_id: str):
     except Exception:
         raise HTTPException(status_code=400, detail="document_id invalide")
 
-    document = await db.ocr_results.find_one({"_id": object_id})
+    document = await db.documents.find_one({"_id": object_id})
     if not document:
         raise HTTPException(status_code=404, detail="Document introuvable")
 

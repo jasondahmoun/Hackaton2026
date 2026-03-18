@@ -1,0 +1,120 @@
+.sidebar {
+   width: 210px;
+   min-width: 210px;
+   background: #ffffff;
+   border-right: 1px solid #e5e7eb;
+   display: flex;
+   flex-direction: column;
+   position: sticky;
+   top: 0;
+   height: 100svh;
+   flex-shrink: 0;
+}
+
+/* Logo */
+.sidebar-logo {
+   display: flex;
+   align-items: center;
+   gap: 9px;
+   padding: 24px 20px 20px;
+   border-bottom: 1px solid #e5e7eb;
+}
+
+.sidebar-logo-icon {
+   width: 28px;
+   height: 28px;
+   background: #16a34a;
+   border-radius: 6px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   color: #fff;
+   font-size: 14px;
+   font-weight: 700;
+   flex-shrink: 0;
+}
+
+.sidebar-logo-text {
+   font-weight: 700;
+   font-size: 15px;
+   color: #111827;
+   letter-spacing: -0.3px;
+}
+
+/* Nav */
+.sidebar-nav {
+   padding: 12px 10px;
+   flex: 1;
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
+}
+
+.sidebar-nav-label {
+   font-size: 10px;
+   font-weight: 600;
+   text-transform: uppercase;
+   letter-spacing: 0.8px;
+   color: #9ca3af;
+   padding: 4px 10px 8px;
+}
+
+.sidebar-link {
+   display: flex;
+   align-items: center;
+   gap: 10px;
+   padding: 9px 10px;
+   border-radius: 6px;
+   text-decoration: none;
+   font-size: 13px;
+   font-weight: 400;
+   color: #111827;
+   border-left: 2px solid transparent;
+   transition: background 0.12s;
+}
+
+.sidebar-link:hover {
+   background: #f9fafb;
+}
+
+.sidebar-link.active {
+   background: #f0fdf4;
+   border-left-color: #16a34a;
+   color: #15803d;
+   font-weight: 600;
+}
+
+.sidebar-link-dot {
+   width: 6px;
+   height: 6px;
+   border-radius: 50%;
+   background: #d1d5db;
+   flex-shrink: 0;
+   transition: background 0.12s;
+}
+
+.sidebar-link.active .sidebar-link-dot {
+   background: #16a34a;
+}
+
+/* Footer */
+.sidebar-footer {
+   padding: 14px 16px;
+   border-top: 1px solid #e5e7eb;
+   display: flex;
+   align-items: center;
+   gap: 7px;
+}
+
+.sidebar-health-dot {
+   width: 7px;
+   height: 7px;
+   border-radius: 50%;
+   flex-shrink: 0;
+   display: inline-block;
+}
+
+.sidebar-footer-text {
+   font-size: 11px;
+   color: #9ca3af;
+}

@@ -1,0 +1,64 @@
+.alert-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 99px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  line-height: 1.5;
+  border: 1px solid transparent;
+}
+
+.alert-badge--normal {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.alert-badge--small {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.alert-badge__dot {
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.alert-badge--normal .alert-badge__dot {
+  width: 7px;
+  height: 7px;
+}
+
+.alert-badge--small .alert-badge__dot {
+  width: 6px;
+  height: 6px;
+}
+
+/* Niveaux */
+.alert-badge--critique {
+  color: var(--c-error);
+  background: var(--c-error-light);
+  border-color: #FECACA;
+}
+.alert-badge--critique .alert-badge__dot {
+  background: var(--c-error);
+}
+
+.alert-badge--warn {
+  color: var(--c-warning);
+  background: var(--c-warning-light);
+  border-color: #FDE68A;
+}
+.alert-badge--warn .alert-badge__dot {
+  background: var(--c-warning);
+}
+
+.alert-badge--ok {
+  color: var(--c-success);
+  background: var(--c-success-light);
+  border-color: #A7F3D0;
+}
+.alert-badge--ok .alert-badge__dot {
+  background: var(--c-success);
+}

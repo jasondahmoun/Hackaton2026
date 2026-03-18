@@ -6,11 +6,17 @@ export default defineConfig({
    plugins: [react()],
    resolve: {
       alias: {
-         "@common": path.resolve(__dirname, "./common-components"),
+         "@common": path.resolve(__dirname, "../common-components"),
       },
    },
    server: {
       port: 5174,
       host: true,
+      fs: {
+         allow: [".."],
+      },
+   },
+   optimizeDeps: {
+      include: ["jose", "js-cookie"],
    },
 });

@@ -154,7 +154,7 @@ async def get_ocr_result(document_id: str):
     except Exception:
         raise HTTPException(status_code=400, detail="document_id invalide")
 
-    document = await db.documents.find_one({"_id": object_id})
+    document = await db.ocr_results.find_one({"_id": object_id})
     if not document:
         raise HTTPException(status_code=404, detail="Document introuvable")
 

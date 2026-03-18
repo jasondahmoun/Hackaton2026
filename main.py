@@ -8,8 +8,8 @@ import os
 from datetime import datetime
 
 MONGODB_URL = os.getenv("MONGODB_URL")
-MONGODB_DB = os.getenv("MONGODB_DB", "ocr_database")
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "data/uploads")
+MONGODB_DB = os.getenv("MONGODB_DB") or "ocr_database"
+UPLOAD_DIR = os.getenv("UPLOAD_DIR") or "data/uploads"
 
 app_state = {}
 

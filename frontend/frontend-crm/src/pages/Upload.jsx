@@ -401,6 +401,7 @@ export default function Upload() {
         fields: extracted.fields,
         anomalies: extracted.anomalies || [],
         docId: ocrResult?.id || id,
+        backendFileUrl: ocrResult?.file_url || null,
       })
     } catch (err) {
       const message = err?.response?.data?.detail || err?.message || 'Erreur inconnue'

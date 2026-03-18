@@ -47,25 +47,29 @@ function detectType(filename, text = '') {
 
 // ── Pipeline Upload ───────────────────────────────────────
 
-// Étape 1 : upload (pas d'endpoint dédié, on génère un id local)
+// Étape 1 : upload fictif (la vraie étape 1+2 est runOCR)
 export async function uploadDocument(file) {
   return { id: `doc-${Date.now()}`, filename: file.name }
 }
 
-// Étape 2 : OCR réel via POST /ocr
-// Lance une erreur si le backend échoue ou si c'est un PDF
+// Étape 2 : upload + OCR réel via POST /documents/upload
+// Supporte images et PDF
 export async function runOCR(file) {
-  if (file.type === 'application/pdf') {
-    throw new Error('Les PDF ne sont pas encore supportés par l\'OCR. Utilisez une image (JPG, PNG).')
-  }
-
   const form = new FormData()
   form.append('file', file)
 
-  const res = await api.post('/ocr', form, {
+  const res = await api.post('/documents/upload', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000,  // OCR peut être long
   })
-  return res.data  // { id, filename, text, timestamp }
+  // Normalise la réponse pour le reste du pipeline
+  const data = res.data
+  return {
+    id:       data.document_id,
+    filename: data.filename,
+    text:     data.clean_zone?.extracted_text || '',
+    file_url: data.raw_zone?.file_url || null,
+  }
 }
 
 // Étape 3 : extraction des champs depuis le texte OCR
@@ -81,6 +85,12 @@ export async function extractFields(ocrResult, filename) {
 // Étape 4 : classification
 export async function classifyDocument(ocrResult, filename) {
   return { type: detectType(filename, ocrResult?.text || '') }
+}
+
+// ── OCR Results ───────────────────────────────────────────
+export async function getOcrResults(limit = 50) {
+  const res = await api.get(`/ocr_results?limit=${limit}`)
+  return res.data.ocr_results
 }
 
 // ── Corrections ───────────────────────────────────────────

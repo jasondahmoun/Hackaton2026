@@ -64,6 +64,13 @@ export async function fetchAllDocuments() {
   return res.json();
 }
 
+export async function fetchCorrections(limit = 50) {
+  const res = await fetch(`http://localhost:8000/corrections?limit=${limit}`);
+  if (!res.ok) throw new Error("Erreur réseau /corrections");
+  const data = await res.json();
+  return data.corrections || [];
+}
+
 export async function fetchDocumentByRef(ref) {
   // Cherche d'abord par ID exact, sinon par nom de fichier
   try {

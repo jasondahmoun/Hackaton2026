@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.responses import FileResponse
 from bson import ObjectId
 from pdf2image import convert_from_bytes
 from ocr.ocr_pretraitement import preprocess_image
@@ -12,10 +13,21 @@ from datetime import datetime
 #  Router FastAPI
 router = APIRouter()
 
-#  On récupère la DB depuis l'app principale
 def get_db():
     from main import app_state
     return app_state["db"]
+
+def serialize(obj):
+    """Convertit récursivement tous les ObjectId et datetime en types JSON-sérialisables."""
+    if isinstance(obj, dict):
+        return {k: serialize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [serialize(i) for i in obj]
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    return obj
 
 
 UPLOAD_DIR = os.getenv("UPLOAD_DIR") or "data/uploads"
@@ -176,24 +188,44 @@ async def get_ocr_result(document_id: str):
         "ocr_result": result
     }
 
+@router.get("/documents/{document_id}/file")
+async def get_document_file(document_id: str):
+    db = get_db()
+    try:
+        doc = await db.documents.find_one({"_id": ObjectId(document_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="document_id invalide")
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document introuvable")
+    file_url = doc.get("file_url", "")
+    if not os.path.isfile(file_url):
+        raise HTTPException(status_code=404, detail=f"Fichier introuvable : {file_url}")
+    return FileResponse(file_url)
+
+
+@router.get("/ocr_results")
+async def get_ocr_results(limit: int = 50):
+    db = get_db()
+    try:
+        cursor = db.ocr_results.find().sort("_id", -1).limit(limit)
+        results = []
+        async for doc in cursor:
+            results.append(serialize(doc))
+        return {"count": len(results), "ocr_results": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur : {str(e)}")
+
+
 @router.get("/corrections")
 async def get_all_corrections(limit: int = 100):
     db = get_db()
 
     try:
-        cursor = db.correction.find().sort("created_at", -1).limit(limit)
+        cursor = db.corrections.find().sort("_id", -1).limit(limit)
         corrections = []
 
         async for doc in cursor:
-            doc["_id"] = str(doc["_id"])
-
-            if "original_id" in doc and isinstance(doc["original_id"], ObjectId):
-                doc["original_id"] = str(doc["original_id"])
-
-            if "created_at" in doc and doc["created_at"] is not None:
-                doc["created_at"] = doc["created_at"].isoformat()
-
-            corrections.append(doc)
+            corrections.append(serialize(doc))
 
         return {
             "count": len(corrections),

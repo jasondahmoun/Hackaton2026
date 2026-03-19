@@ -135,9 +135,6 @@ export default function Sidebar() {
               ? 'var(--status-green)'
               : 'var(--status-red)',
         }} />
-        <span style={{ fontSize: 11, color: 'var(--text)' }}>
-          {health === null ? 'Connexion…' : health ? 'Backend OK' : 'Backend offline'}
-        </span>
       </div>
     </aside>
   )

@@ -492,7 +492,6 @@ export default function Upload() {
 
       </div>
 
-      <DebugPanel files={files} />
       <Lightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
     </>
   )

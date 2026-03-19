@@ -10,7 +10,10 @@ export default function CorrectionModal({ c, onClose }) {
    const [fileType, setFileType] = useState(null);
 
      useEffect(() => {
-    if (!fileUrl) return;
+    if (!fileUrl || !c) {
+      setFileType(null);
+      return;
+    }
 
     if (c.content_type && c.content_type.includes("pdf")) {
       setFileType("pdf");

@@ -33,7 +33,9 @@ export default function ComplianceDashboard() {
 
    return (
       <div>
+      {selected && (
       <CorrectionModal c={selected} onClose={() => setSelected(null)} />
+    )}
          <div className="dashboard__header">
             <h1 className="dashboard__title">Tableau de bord conformité</h1>
             <p className="dashboard__subtitle">

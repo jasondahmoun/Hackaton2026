@@ -1,6 +1,8 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from bson import ObjectId
+import binascii
+import mimetypes
 from pdf2image import convert_from_bytes
 import base64
 #from ocr.ocr_pretraitement import preprocess_image
@@ -78,6 +80,7 @@ async def upload_and_process(file: UploadFile = File(...)):
         "user_id": fake_user_id,
         "title": file.filename.split(".")[0],
         "filename": file.filename,
+        "content_type": file.content_type,
         "file_url": file_path,
         "status": False,
         "created_at": datetime.utcnow()
@@ -110,6 +113,7 @@ async def upload_and_process(file: UploadFile = File(...)):
             "title": file.filename.split(".")[0],
             "extracted_text": extracted_text,
             "confidence": None,
+            "content_type": file.content_type,
             "language": "fr",
             "status": False,
             "created_at": datetime.utcnow()
@@ -200,7 +204,7 @@ async def get_ocr_result(document_id: str):
 
 @router.get("/documents/{document_id}/file")
 async def get_document_file(document_id: str):
-    from fastapi.responses import Response
+    #from fastapi.responses import Response
     db = get_db()
     try:
         doc = await db.documents.find_one({"_id": ObjectId(document_id)})
@@ -210,6 +214,9 @@ async def get_document_file(document_id: str):
         raise HTTPException(status_code=404, detail="Document introuvable")
 
     file_url = doc.get("file_url", "")
+    content_type = doc.get("content_type")
+    filename = doc.get("filename")
+    safe_filename = (filename or "document").encode("latin-1", "ignore").decode("latin-1")
 
     # Cas 1 : base64 stocké directement dans file_url
     if file_url and len(file_url) > 200 and not os.path.exists(file_url):
@@ -224,14 +231,23 @@ async def get_document_file(document_id: str):
                 media_type = "image/jpeg"
             else:
                 media_type = doc.get("content_type") or "application/octet-stream"
-            return Response(content=raw, media_type=media_type)
-        except Exception:
-            raise HTTPException(status_code=500, detail="Erreur décodage base64")
+
+            return Response(content=raw, media_type=media_type,headers={"Content-Disposition": f'inline; filename="{safe_filename}"'})
+        except binascii.Error as e:
+            print("Base64 invalide :", repr(e))
+            raise HTTPException(status_code=500, detail=f"Base64 invalide: {str(e)}")
+        except Exception as e:
+            print("Erreur réelle :", repr(e))
+            raise HTTPException(status_code=500, detail=f"Erreur réelle: {str(e)}")
 
     # Cas 2 : chemin fichier sur disque
     if not os.path.isfile(file_url):
         raise HTTPException(status_code=404, detail=f"Fichier introuvable : {file_url}")
-    return FileResponse(file_url)
+    mime_type, _ = mimetypes.guess_type(file_url)
+    return FileResponse(file_url,
+                        media_type=mime_type or content_type or "application/octet-stream",
+                        headers={"Content-Disposition": 'inline; filename="document"'}
+                        )
 
 
 @router.get("/ocr_results")

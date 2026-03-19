@@ -564,7 +564,7 @@ def insert_correction(
         "siret":          NUM_SIRET,
         "extracted_info": extracted_info,
         "gouv_info":      gouv_info,
-        "timestamp":      source_doc.get("timestamp"),
+        "timestamp":      source_doc.get("created_at"),
         "content_type":   source_doc.get("content_type"),
         "FLAG_SIRET":     FLAG_SIRET,
         "WARNING_FLAG":   WARNING_FLAG,

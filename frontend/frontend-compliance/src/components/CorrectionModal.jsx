@@ -9,18 +9,18 @@ export default function CorrectionModal({ c, onClose }) {
    const fileUrl = docId ? `${API}/documents/${docId}/file` : null;
    const [fileType, setFileType] = useState(null);
 
-   useEffect(() => {
-      if (!fileUrl) return;
-      setFileType(null);
-      fetch(fileUrl, { method: "HEAD" })
-         .then(r => {
-            const ct = r.headers.get("content-type") || "";
-            if (ct.includes("pdf")) setFileType("pdf");
-            else if (ct.startsWith("image/")) setFileType("image");
-            else setFileType("image"); 
-         })
-         .catch(() => setFileType("error"));
-   }, [fileUrl]);
+     useEffect(() => {
+    if (!fileUrl) return;
+
+    if (c.content_type && c.content_type.includes("pdf")) {
+      setFileType("pdf");
+    } else if (c.content_type && c.content_type.startsWith("image/")) {
+      setFileType("image");
+    } else {
+      setFileType("unknown");
+    }
+  }, [fileUrl, c]);
+
 
    const nom     = c.extracted_info?.nom_fournisseur || c.infos_scrap_document?.Info_vendeur?.Nom || c.gouv_info?.nom_complet || c.infos_gouv?.nom_officiel || "—";
    const siret   = c.siret || c.extracted_info?.siret_fournisseur || c.NUM_SIRET || "—";
@@ -73,12 +73,12 @@ export default function CorrectionModal({ c, onClose }) {
                </div>
             </div>
 
-            {fileUrl && fileType && fileType !== "error" && (
+            {fileUrl && fileType && fileType !== "error" && fileType !== "unknown" && (
                <div style={{ borderBottom: "1px solid #e5e7eb", background: "#f9fafb", display: "flex", justifyContent: "center", padding: "12px 20px", flexShrink: 0 }}>
                   {fileType === "pdf" ? (
-                     <embed
+                     <iframe
                         src={fileUrl}
-                        type="application/pdf"
+                        title="PDF preview"
                         style={{ width: "100%", height: 300, borderRadius: 6, border: "1px solid #e5e7eb" }}
                      />
                   ) : (

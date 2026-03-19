@@ -10,6 +10,10 @@ function OcrDetail({ doc }) {
   const [imgError, setImgError] = useState(false)
   const [lightbox, setLightbox] = useState(false)
 
+  const contentType = doc.content_type || ''
+  const isPdf = contentType.includes('pdf')
+  const isImage = contentType.startsWith('image/') 
+
   return (
     <div style={{
       border: '1px solid var(--border)', borderRadius: 8,
@@ -30,16 +34,33 @@ function OcrDetail({ doc }) {
       <div style={{ display: 'grid', gridTemplateColumns: imgUrl && !imgError ? '1fr 1fr' : '1fr', gap: 16 }}>
 
         {/* Image du document */}
-        {imgUrl && !imgError && (
+        {imgUrl && !imgError && (isPdf || isImage) &&(
           <div>
             <div style={{
-              fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-              letterSpacing: '0.6px', color: 'var(--text)',
-              borderBottom: '1px solid var(--border)', paddingBottom: 6, marginBottom: 10,
+              fontSize: 11, fontWeight: 700, 
+              textTransform: 'uppercase',
+              letterSpacing: '0.6px', 
+              color: 'var(--text)',
+              borderBottom: '1px solid var(--border)', 
+              paddingBottom: 6, 
+              marginBottom: 10,
             }}>
               Document original
             </div>
-            <img
+            {isPdf ? (
+              <iframe
+                src={imgUrl}
+                title="PDF original"
+                onError={() => setFileError(true)}
+                style={{
+                  width: '100%',
+                  height: 420,
+                  borderRadius: 7,
+                  border: '1px solid var(--border)',
+                  background: '#fff',
+                }}
+              />
+            ) : (<img
               src={imgUrl}
               alt="Document original"
               onClick={() => setLightbox(true)}
@@ -50,7 +71,7 @@ function OcrDetail({ doc }) {
                 cursor: 'zoom-in', objectFit: 'contain',
                 maxHeight: 420,
               }}
-            />
+            />)}
           </div>
         )}
 

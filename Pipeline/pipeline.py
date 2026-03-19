@@ -13,6 +13,7 @@ Flux général :
 
 import os
 import re
+import json
 import logging
 import requests
 from datetime import datetime, timezone
@@ -73,8 +74,10 @@ def detect_document_type(text: str) -> str | None:
     # Chercher les mots-clés caractéristiques de chaque type
     if re.search(r"\bFACTURE\b", text_upper):
         return "FACTURE"
-    if re.search(r"\bRIB\b", text_upper) or re.search(
-        r"RELEV[EÉ]\s+D['\s]IDENTIT[EÉ]\s+BANCAIRE", text_upper
+    if (
+        re.search(r"\bRIB\b", text_upper)
+        or re.search(r"RELEV[EÉ]\s+D['\s]IDENTIT[EÉ]\s+BANCAIRE", text_upper)
+        or (re.search(r"\bIBAN\b", text_upper) and re.search(r"\bBIC\b", text_upper))
     ):
         return "RIB"
 
@@ -167,6 +170,33 @@ def _safe_get(pattern: str, text: str, group: int = 1) -> str | None:
     """
     m = re.search(pattern, text, re.IGNORECASE)
     return m.group(group).strip() if m else None
+
+
+def clean_query(q: str) -> str:
+    """
+    Nettoie une chaîne de recherche pour l'API Gouv.
+    Supprime le bruit OCR courant et les termes internes non pertinents.
+    """
+    if not q: return ""
+    
+    # Liste de bruits OCR ou labels internes typiques à ignorer
+    noise_patterns = [
+        r"PHYSIQUE-OUTREMER",
+        r"PARTIE RESERVEE.*",
+        r"T[EÉ]L\s*[:\d\s\.]+",
+        r"RELEVE D'IDENTITE BANCAIRE",
+        r"IDENTIFIANT NATIONAL.*",
+    ]
+    
+    cleaned = q
+    for p in noise_patterns:
+        cleaned = re.sub(p, " ", cleaned, flags=re.IGNORECASE)
+    
+    # Nettoyage des caractères spéciaux et espaces en trop
+    cleaned = re.sub(r"[^\w\s\d]", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    
+    return cleaned
 
 
 def format_gouv_info(api_data: dict) -> dict:
@@ -335,6 +365,7 @@ def extract_facture_info(text: str, siret: str | None = None) -> dict:
 def extract_rib_info(text: str) -> dict:
     """
     Extrait les champs métier d'un RIB depuis le texte OCR.
+    Supporte plusieurs formats grâce à des regex flexibles.
 
     Champs retournés :
       - nom_fournisseur : nom du titulaire du compte
@@ -343,49 +374,104 @@ def extract_rib_info(text: str) -> dict:
       - rib             : coordonnées bancaires RIB brutes (banque, guichet, compte, clé)
     """
 
-    # --- IBAN français ---
-    # Format : FR + 2 chiffres de contrôle + 23 chiffres/lettres (espaces tolérés)
-    iban = None
-    m = re.search(r"\b(FR\d{2}(?:[\s]?[A-Z0-9]{4}){5}[\s]?[A-Z0-9]{3})\b", text, re.IGNORECASE)
-    if m:
-        iban = re.sub(r"\s+", "", m.group(1)).upper()
+    # --- 1. IBAN (Focus France) ---
+    # Recherche flexible : FR + 2 chiffres + 23 chiffres (éventuellement séparés par des espaces)
+    iban_match = re.search(r"FR(?:\s?\d){25}", text, re.IGNORECASE)
+    iban = re.sub(r"\s+", "", iban_match.group(0)).upper() if iban_match else None
 
-    # --- BIC / SWIFT ---
-    # 8 ou 11 caractères : 4 lettres (banque) + 2 lettres (pays) + 2 car. (ville) + 3 optionnels
+    # --- 2. BIC / SWIFT ---
     bic = None
-    m = re.search(r"\b([A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?)\b", text)
-    if m:
-        bic = m.group(1)
+    # Stratégie A : Recherche après le mot-clé BIC
+    bic_context = re.search(r"(?:BIC|Bank Identifier Code)\s*[:\-]?\s*([A-Z0-9\s]{8,15})", text, re.IGNORECASE)
+    if bic_context:
+        context_end = bic_context.end()
+        # On regarde la ligne courante ou la suivante pour le code
+        after_context = text[context_end:].strip().split('\n')[0]
+        # Recherche d'un bloc de 8 à 11 caractères alphanumériques (typique BIC)
+        m_bic = re.search(r"([A-Z]{4}\s?[A-Z]{2}\s?[A-Z0-9]{2}(?:\s?[A-Z0-9]{3})?)", after_context, re.IGNORECASE)
+        if m_bic:
+            bic = re.sub(r"\s+", "", m_bic.group(1).upper())
+    
+    # Stratégie B : Recherche après l'IBAN (souvent sur la même ligne ou juste après)
+    if not bic and iban_match:
+        after_iban = text[iban_match.end():].strip().split('\n')[0]
+        m_bic = re.search(r"([A-Z]{4}\s?[A-Z]{2}\s?[A-Z0-9]{2}(?:\s?[A-Z0-9]{3})?)", after_iban, re.IGNORECASE)
+        if m_bic:
+            bic = re.sub(r"\s+", "", m_bic.group(1).upper())
 
-    # --- RIB brut (banque / guichet / numéro compte / clé) ---
-    # Certains documents affichent les coordonnées RIB séparément de l'IBAN
+    # --- 3. RIB brut (Banque / Guichet / Compte / Clé) ---
     rib = {}
-    for label, key in [
-        (r"(?:code\s+)?banque\s*[:\-]?\s*(\d{5})", "code_banque"),
-        (r"(?:code\s+)?guichet\s*[:\-]?\s*(\d{5})", "code_guichet"),
-        (r"(?:n[°o]?\s+)?compte\s*[:\-]?\s*([A-Z0-9]{11})", "numero_compte"),
-        (r"cl[eé]\s+rib\s*[:\-]?\s*(\d{2})", "cle_rib"),
-    ]:
-        val = _safe_get(label, text)
-        if val:
-            rib[key] = val
+    # Stratégie A : Recherche d'une ligne de données groupées (5 5 11 2)
+    rib_line_match = re.search(r"(\d{5})\s+(\d{5})\s+([A-Z0-9]{11})\s+(\d{2})", text, re.IGNORECASE)
+    if rib_line_match:
+        rib = {
+            "code_banque":   rib_line_match.group(1),
+            "code_guichet":  rib_line_match.group(2),
+            "numero_compte": rib_line_match.group(3),
+            "cle_rib":       rib_line_match.group(4),
+        }
+    else:
+        # Stratégie B : Recherche via les labels individuels
+        for label, key in [
+            (r"(?:code\s+)?banque\s*[:\-]?\s*(\d{5})", "code_banque"),
+            (r"(?:code\s+)?guichet\s*[:\-]?\s*(\d{5})", "code_guichet"),
+            (r"(?:n[°o]?\s+)?compte\s*[:\-]?\s*([A-Z0-9]{11})", "numero_compte"),
+            (r"cl[eé]\s+rib\s*[:\-]?\s*(\d{2})", "cle_rib"),
+        ]:
+            val = _safe_get(label, text)
+            if val:
+                rib[key] = val
 
-    # --- Nom fournisseur / titulaire ---
-    nom_fournisseur = _safe_get(
-        r"(?:titulaire|nom|b[eé]n[eé]ficiaire|client)\s*[:\-]?\s*(.+)", text
-    )
-    if not nom_fournisseur:
-        # Heuristique : première ligne non vide qui n'est pas un mot-clé RIB
-        for line in [l.strip() for l in text.splitlines() if l.strip()]:
-            if not re.match(r"^(?:RIB|RELEV[EÉ]|IBAN|BIC|BANQUE)", line, re.IGNORECASE):
-                nom_fournisseur = line
+    # --- 4. Nom fournisseur / Titulaire ---
+    nom_fournisseur = None
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    
+    # On filtre les lignes qui sont en fait l'IBAN ou le BIC
+    clean_lines = []
+    for l in lines:
+        normalized = re.sub(r"\s+", "", l).upper()
+        if iban and iban in normalized: continue
+        if bic and bic in normalized: continue
+        clean_lines.append(l)
+
+    for i, line in enumerate(clean_lines):
+        # Recherche des marqueurs de titulaire
+        if re.search(r"(?:Titulaire du compte|Account Owner|B[eé]n[eé]ficiaire|Client)", line, re.IGNORECASE):
+            m = re.search(r"(?:Titulaire du compte|Account Owner|B[eé]n[eé]ficiaire|Client)(?:\s*\(.*\))?\s*[:\-]?\s*(.+)", line, re.IGNORECASE)
+            if m and len(m.group(1).strip()) > 3:
+                nom_fournisseur = m.group(1).strip()
                 break
+            if i + 1 < len(clean_lines):
+                next_line = clean_lines[i+1]
+                if not re.search(r"(?:IBAN|BIC|SIRET|T[EÉ]L|ADRESSE|DOMICILIATION)", next_line, re.IGNORECASE):
+                    nom_fournisseur = next_line
+                    break
+
+    if not nom_fournisseur:
+        for line in clean_lines:
+            if not re.match(r"^(?:RIB|RELEV[EÉ]|IBAN|BIC|BANQUE|IDENTITE|DOMICILIATION|TITULAIRE|IDENTIFIANT|APPEL)", line, re.IGNORECASE):
+                if len(line) > 3:
+                    nom_fournisseur = line
+                    break
+
+    # --- 5. Adresse (Heuristique) ---
+    adresse = None
+    for i, line in enumerate(clean_lines):
+        if re.search(r"\d{5}\s+[A-Z]", line): # CP + Ville
+            adresse_parts = []
+            if i > 0 and len(clean_lines[i-1]) > 5 and not re.search(r"(?:TITULAIRE|COMPTE|RIB|IBAN|BIC|NOM)", clean_lines[i-1], re.IGNORECASE):
+                adresse_parts.append(clean_lines[i-1])
+            adresse_parts.append(line)
+            adresse = " ".join(adresse_parts)
+            break
 
     return {
         "nom_fournisseur": nom_fournisseur,
+        "nom_titulaire":   nom_fournisseur, # Alias pour compatibilité
         "iban":            iban,
         "bic":             bic,
         "rib":             rib if rib else None,
+        "adresse":         adresse,
     }
 
 
@@ -473,51 +559,247 @@ def process_rib(text: str) -> tuple[dict, dict, bool, bool, str | None, str | No
     log.info("  [B1] Extraction du nom du titulaire et de l'adresse…")
     extracted_info = extract_rib_info(text)
 
-    nom     = extracted_info.get("nom_titulaire", "")
-    adresse = extracted_info.get("adresse", "")
+    nom     = extracted_info.get("nom_titulaire") or extracted_info.get("nom_fournisseur") or ""
+    adresse = extracted_info.get("adresse") or ""
 
     log.info("  [B1] Nom titulaire : %r | Adresse : %r", nom, adresse)
 
     # --- Règle B2 : Résolution SIRET via API Gouvernement ---
     log.info("  [B2] Résolution SIRET via l'API Gouvernement (nom + adresse)…")
-    query    = f"{nom} {adresse}".strip()
-    api_data = call_gouv_api(query)
-
+    
+    # 1. Tentative avec requête complète nettoyée
+    primary_query = clean_query(f"{nom} {adresse}")
+    api_data = call_gouv_api(primary_query)
     results = api_data.get("results", [])
 
-    if len(results) == 1:
-        # Un seul résultat → identification non ambiguë
-        entreprise = results[0]
+    # 2. Si 0 résultat, tentative avec le nom uniquement
+    if not results and nom:
+        log.info("  [B2] Aucun résultat avec l'adresse. Tentative avec le nom uniquement…")
+        api_data = call_gouv_api(clean_query(nom))
+        results = api_data.get("results", [])
 
+    # 3. Filtrage et sélection du meilleur candidat si résultats multiples
+    best_candidate = None
+    if len(results) == 1:
+        best_candidate = results[0]
+    elif len(results) > 1:
+        log.info("  [B2] %d résultats trouvés. Recherche du meilleur candidat (Banque/Adresse)…", len(results))
+        
+        # Mots-clés indiquant un établissement bancaire
+        bank_keywords = ["BANQUE", "CREDIT", "MUTUEL", "CAISSE", "SOCIETE GENERALE", "BNP", "AGRICOLE"]
+        
+        # On score les résultats
+        scored_results = []
+        for res in results:
+            score = 0
+            nom_res = res.get("nom_complet", "").upper()
+            
+            # Bonus : Correspondance de mots-clés bancaires
+            if any(kw in nom_res for kw in bank_keywords):
+                score += 10
+            
+            # Bonus : Proximité de l'adresse (on cherche si le CP est dans l'adresse du siège)
+            cp_match = re.search(r"\d{5}", adresse)
+            if cp_match:
+                cp = cp_match.group(0)
+                siege_addr = str(res.get("siege", {}).get("adresse", "")).upper()
+                if cp in siege_addr:
+                    score += 15
+            
+            scored_results.append((score, res))
+        
+        # Tri par score décroissant
+        scored_results.sort(key=lambda x: x[0], reverse=True)
+        if scored_results[0][0] > 0:
+            best_candidate = scored_results[0][1]
+            log.info("  [B2] Candidat retenu : %s (Score: %d)", best_candidate.get("nom_complet"), scored_results[0][0])
+
+    if best_candidate:
         # Récupération du SIRET depuis le premier établissement correspondant
-        etabs = entreprise.get("matching_etablissements", [])
+        etabs = best_candidate.get("matching_etablissements", [])
         if etabs:
             NUM_SIRET = etabs[0].get("siret")
         else:
-            # Repli sur le SIREN si aucun établissement n'est listé
-            NUM_SIRET = entreprise.get("siren")
+            NUM_SIRET = best_candidate.get("siren")
 
         FLAG_SIRET  = True
-        gouv_info   = format_gouv_info(api_data)              # champs synthétisés
+        # On met à jour gouv_info avec le candidat retenu
+        gouv_info   = format_gouv_info({"results": [best_candidate]})
         STATUT      = "SUCCES"
-        STATUT_TEXT = "SIRET identifié via API Gouv"
+        STATUT_TEXT = f"SIRET résolu : {best_candidate.get('nom_complet')}"
         log.info("  [B2] SIRET résolu : %s", NUM_SIRET)
 
     else:
-        # Aucun résultat ou ambiguïté → action manuelle requise
+        # Aucun résultat ou ambiguïté persistante
         NUM_SIRET    = None
         FLAG_SIRET   = False
         WARNING_FLAG = True
         WARNING_TEXT = "SIRET non trouvé ou ambigu"
         STATUT       = "ACTION_MANUELLE"
         STATUT_TEXT  = "Intervention manuelle requise — RIB non résolu"
-        log.warning(
-            "  [B2] %d résultat(s) — ambiguïté ou absence de résultat.",
-            len(results),
-        )
+        log.warning("  [B2] Échec de la résolution automatique du SIRET.")
 
     return (extracted_info, gouv_info, FLAG_SIRET, WARNING_FLAG,
             WARNING_TEXT, NUM_SIRET, STATUT, STATUT_TEXT)
+
+
+# ===========================================================================
+# BRANCHE C — Traitement LLM
+# ===========================================================================
+
+def extract_document_data_llm(text: str, api_key: str) -> dict:
+    url = "https://api.mammouth.ai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "gemini-2.5-flash-lite",
+        "temperature": 0,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "Tu es un extracteur de données financières. "
+                    "Réponds UNIQUEMENT en JSON valide, sans markdown, sans explication.\n"
+                    "Si c'est une FACTURE, retourne :\n"
+                    '{"type":"facture","extracted_info":{"id_facture":"","date_facture":"","nom_fournisseur":"","siret_fournisseur":"","biens_et_produits":[{"NomProduit":"","Quantite":0,"prix_unitaire_ht":0}],"total_ht":0,"tva":0,"ttc":0}}\n'
+                    "Si c'est un RIB, retourne :\n"
+                    '{"type":"rib","extracted_info":{"nom_fournisseur":"","nom_titulaire":"","iban":"","bic":"","adresse":""}}\n'
+                    "Champs absents = null. IBAN sans espaces en majuscules. Montants en nombres décimaux."
+                )
+            },
+            {
+                "role": "user",
+                "content": text
+            }
+        ]
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=data, timeout=30)
+        response.raise_for_status()
+        content = response.json().get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+
+        # Nettoyage si backticks
+        if content.startswith("```"):
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+
+        return json.loads(content.strip())
+    except Exception as e:
+        log.error("  [LLM] Erreur lors de l'appel LLM : %s", e)
+        return None
+
+def process_document_llm(text: str, api_key: str) -> tuple[dict, dict, bool, bool, str | None, str | None, str, str]:
+    """
+    Applique le traitement LLM puis valide par Gouv API.
+    """
+    FLAG_SIRET   = False
+    NUM_SIRET    = None
+    WARNING_FLAG = False
+    WARNING_TEXT = None
+    STATUT       = None
+    STATUT_TEXT  = None
+    gouv_info    = {}
+    
+    log.info("  [LLM] Appel de l'API LLM...")
+    llm_result = extract_document_data_llm(text, api_key)
+
+    if not llm_result:
+        return {}, {}, False, True, "Erreur API LLM", None, "ERREUR", "Impossible d'extraire via LLM"
+
+    doc_type = llm_result.get("type", "").upper()
+    extracted_info = llm_result.get("extracted_info", {})
+
+    if doc_type == "FACTURE":
+        log.info("  [LLM] Type détecté: FACTURE")
+        NUM_SIRET = extracted_info.get("siret_fournisseur")
+        if not NUM_SIRET:
+            log.warning("  [LLM] SIRET non trouvé dans le document.")
+            return extracted_info, {}, False, True, "SIRET absent du document", None, "ERREUR", "SIRET non trouvé lors du scraping"
+
+        log.info("  [LLM] SIRET extrait : %s. Validation Gouv API...", NUM_SIRET)
+        api_data = call_gouv_api(NUM_SIRET)
+
+        if siret_confirmed_by_api(NUM_SIRET, api_data):
+            FLAG_SIRET  = True
+            gouv_info   = format_gouv_info(api_data)
+            STATUT      = "SUCCES"
+            STATUT_TEXT = "SIRET vérifié, données extraites"
+            log.info("  [LLM] SIRET confirmé par l'API Gouvernement.")
+        else:
+            WARNING_FLAG = True
+            WARNING_TEXT = "SIRET non confirmé par l'API Gouv"
+            STATUT       = "ERREUR"
+            STATUT_TEXT  = "Échec validation API Gouv"
+            log.warning("  [LLM] SIRET non confirmé par l'API Gouvernement.")
+
+        return extracted_info, gouv_info, FLAG_SIRET, WARNING_FLAG, WARNING_TEXT, NUM_SIRET, STATUT, STATUT_TEXT
+
+    elif doc_type == "RIB":
+        log.info("  [LLM] Type détecté: RIB")
+        nom = extracted_info.get("nom_titulaire") or extracted_info.get("nom_fournisseur") or ""
+        adresse = extracted_info.get("adresse") or ""
+
+        log.info("  [LLM] Résolution SIRET via l'API Gouvernement (nom: %r, addresse: %r)...", nom, adresse)
+        primary_query = clean_query(f"{nom} {adresse}")
+        api_data = call_gouv_api(primary_query)
+        results = api_data.get("results", [])
+
+        if not results and nom:
+            log.info("  [LLM] Aucun résultat avec l'adresse. Tentative avec le nom uniquement…")
+            api_data = call_gouv_api(clean_query(nom))
+            results = api_data.get("results", [])
+
+        best_candidate = None
+        if len(results) == 1:
+            best_candidate = results[0]
+        elif len(results) > 1:
+            log.info("  [LLM] %d résultats trouvés. Recherche du meilleur candidat...", len(results))
+            bank_keywords = ["BANQUE", "CREDIT", "MUTUEL", "CAISSE", "SOCIETE GENERALE", "BNP", "AGRICOLE"]
+            scored_results = []
+            for res in results:
+                score = 0
+                nom_res = res.get("nom_complet", "").upper()
+                if any(kw in nom_res for kw in bank_keywords):
+                    score += 10
+                cp_match = re.search(r"\d{5}", adresse)
+                if cp_match:
+                    cp = cp_match.group(0)
+                    siege_addr = str(res.get("siege", {}).get("adresse", "")).upper()
+                    if cp in siege_addr:
+                        score += 15
+                scored_results.append((score, res))
+            
+            scored_results.sort(key=lambda x: x[0], reverse=True)
+            if scored_results[0][0] > 0:
+                best_candidate = scored_results[0][1]
+                log.info("  [LLM] Candidat retenu : %s (Score: %d)", best_candidate.get("nom_complet"), scored_results[0][0])
+
+        if best_candidate:
+            etabs = best_candidate.get("matching_etablissements", [])
+            NUM_SIRET = etabs[0].get("siret") if etabs else best_candidate.get("siren")
+            FLAG_SIRET  = True
+            gouv_info   = format_gouv_info({"results": [best_candidate]})
+            STATUT      = "SUCCES"
+            STATUT_TEXT = f"SIRET résolu : {best_candidate.get('nom_complet')}"
+            log.info("  [LLM] SIRET résolu : %s", NUM_SIRET)
+        else:
+            NUM_SIRET    = None
+            FLAG_SIRET   = False
+            WARNING_FLAG = True
+            WARNING_TEXT = "SIRET non trouvé ou ambigu"
+            STATUT       = "ACTION_MANUELLE"
+            STATUT_TEXT  = "Intervention manuelle requise — RIB non résolu"
+            log.warning("  [LLM] Échec de la résolution automatique du SIRET.")
+
+        return extracted_info, gouv_info, FLAG_SIRET, WARNING_FLAG, WARNING_TEXT, NUM_SIRET, STATUT, STATUT_TEXT
+
+    # Unknown type returned by LLM
+    log.warning("  [LLM] Type inconnu: %s. Ignoré.", doc_type)
+    return {}, {}, False, True, "Type de document LLM inconnu", None, "ERREUR", f"Type inconnu: {doc_type}"
 
 
 # ===========================================================================
@@ -583,9 +865,10 @@ def insert_correction(
 # PIPELINE PRINCIPAL
 # ===========================================================================
 
-def run_pipeline() -> dict:
+def run_pipeline(strategy: str = "regex", api_key: str = None) -> dict:
     """
     Point d'entrée du pipeline.
+    Stratégies : "regex" ou "llm"
     ...
     Retourne un résumé de l'exécution.
     """
@@ -638,20 +921,43 @@ def run_pipeline() -> dict:
         log.info("-" * 60)
         log.info("[%d/%d] Traitement : %s", index, total, filename)
 
-        type_doc = detect_document_type(text)
-        
         try:
-            if type_doc == "FACTURE":
+            if strategy == "llm":
+                if not api_key:
+                    log.error("  [ERREUR] api_key est requis pour la stratégie LLM")
+                    error_count += 1
+                    details.append({"id": document_id, "file": filename, "status": "ERROR", "error": "api_key manquante"})
+                    continue
+                
+                type_doc = detect_document_type(text)
+                if not type_doc:
+                    log.warning("  [LLM] Type de document inconnu avant appel API. Ignoré.")
+                    skipped_count += 1
+                    details.append({"id": document_id, "file": filename, "status": "SKIPPED", "type": "UNKNOWN"})
+                    continue
+                
+                if type_doc == "FACTURE":
+                    if not extract_siret(text):
+                        log.warning("  [LLM] Facture détectée mais aucun SIRET trouvé. Appel ignoré.")
+                        skipped_count += 1
+                        details.append({"id": document_id, "file": filename, "status": "SKIPPED", "type": "FACTURE_NO_SIRET"})
+                        continue
+
                 (extracted_info, gouv_info, FLAG_SIRET, WARNING_FLAG,
-                 WARNING_TEXT, NUM_SIRET, STATUT, STATUT_TEXT) = process_facture(text)
-            elif type_doc == "RIB":
-                (extracted_info, gouv_info, FLAG_SIRET, WARNING_FLAG,
-                 WARNING_TEXT, NUM_SIRET, STATUT, STATUT_TEXT) = process_rib(text)
+                 WARNING_TEXT, NUM_SIRET, STATUT, STATUT_TEXT) = process_document_llm(text, api_key)
             else:
-                log.warning("  Type inconnu. Ignoré.")
-                skipped_count += 1
-                details.append({"id": document_id, "file": filename, "status": "SKIPPED", "type": type_doc})
-                continue
+                type_doc = detect_document_type(text)
+                if type_doc == "FACTURE":
+                    (extracted_info, gouv_info, FLAG_SIRET, WARNING_FLAG,
+                     WARNING_TEXT, NUM_SIRET, STATUT, STATUT_TEXT) = process_facture(text)
+                elif type_doc == "RIB":
+                    (extracted_info, gouv_info, FLAG_SIRET, WARNING_FLAG,
+                     WARNING_TEXT, NUM_SIRET, STATUT, STATUT_TEXT) = process_rib(text)
+                else:
+                    log.warning("  Type inconnu. Ignoré.")
+                    skipped_count += 1
+                    details.append({"id": document_id, "file": filename, "status": "SKIPPED", "type": type_doc})
+                    continue
 
             insert_correction(
                 col_dest=col_dest, source_doc=doc, document_id=document_id,

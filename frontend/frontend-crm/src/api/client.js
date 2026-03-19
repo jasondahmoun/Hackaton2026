@@ -6,6 +6,11 @@ const api = axios.create({
   timeout: 15000,
 })
 
+const pipelineApi = axios.create({
+  baseURL: 'http://localhost:8001',
+  timeout: 5000,
+})
+
 // ── Parseur de texte OCR → champs structurés ─────────────
 function parseOCRText(text) {
   const fields = {}
@@ -62,8 +67,11 @@ export async function runOCR(file) {
     headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 60000,  // OCR peut être long
   })
-  // Normalise la réponse pour le reste du pipeline
   const data = res.data
+
+  // Déclenche le pipeline en arrière-plan (fire-and-forget)
+  pipelineApi.post('/run').catch(() => {})
+
   return {
     id:       data.document_id,
     filename: data.filename,

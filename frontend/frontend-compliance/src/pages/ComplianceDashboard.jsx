@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import "./ComplianceDashboard.css";
 import { fetchCorrections } from "../api";
 import KPICard from "../components/KPICard";
+import CorrectionModal from "../components/CorrectionModal";
 
 export default function ComplianceDashboard() {
    const [corrections, setCorrections] = useState([]);
    const [loading, setLoading] = useState(true);
    const [search, setSearch] = useState("");
+   const [selected, setSelected] = useState(null);
 
    useEffect(() => {
       fetchCorrections()
@@ -31,6 +33,7 @@ export default function ComplianceDashboard() {
 
    return (
       <div>
+      <CorrectionModal c={selected} onClose={() => setSelected(null)} />
          <div className="dashboard__header">
             <h1 className="dashboard__title">Tableau de bord conformité</h1>
             <p className="dashboard__subtitle">
@@ -113,7 +116,8 @@ export default function ComplianceDashboard() {
                      <div
                         key={c._id}
                         className="dashboard__row"
-                        style={{ gridTemplateColumns: "2fr 1fr 1.5fr 1fr 100px", cursor: "default" }}
+                        style={{ gridTemplateColumns: "2fr 1fr 1.5fr 1fr 100px", cursor: "pointer" }}
+                        onClick={() => setSelected(c)}
                      >
                         <div>
                            <div className="dashboard__row-name">{nom}</div>

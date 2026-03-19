@@ -13,7 +13,6 @@ import ProtectedRoute from "@common/ProtectedRoute";
 
 import ComplianceDashboard from "./pages/ComplianceDashboard";
 import AnomalyDetail from "./pages/AnomalyDetail";
-import DocumentStatus from "./pages/DocumentStatus";
 function AppNav() {
    return (
       <nav className="app-nav">
@@ -25,14 +24,6 @@ function AppNav() {
             }
          >
             Tableau de bord
-         </NavLink>
-         <NavLink
-            to="/documents"
-            className={({ isActive }) =>
-               "app-nav__link" + (isActive ? " app-nav__link--active" : "")
-            }
-         >
-            Documents
          </NavLink>
       </nav>
    );
@@ -67,14 +58,6 @@ export default function App() {
                      }
                   />
 
-                  <Route
-                     path="/documents"
-                     element={
-                        <ProtectedRoute>
-                           <DocumentStatus />
-                        </ProtectedRoute>
-                     }
-                  />
                </Routes>
             </main>
          </div>

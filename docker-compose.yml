@@ -44,6 +44,14 @@ services:
       networks:
          - app_network
 
+   pipeline:
+      build: ./Pipeline
+      container_name: pipeline
+      ports:
+         - "8001:8001"
+      networks:
+         - app_network
+
 networks:
    app_network:
       driver: bridge

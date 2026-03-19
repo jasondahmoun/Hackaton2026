@@ -183,8 +183,6 @@ def extract_text_from_image(
 
     local_score = ocr_quality_score(local_text)
 
-    print("LOCAL SCORE:", local_score)
-    print("LOCAL TEXT:", local_text[:500])
 
     #  Si le texte est bon → on retourne direct (pas de coût GPT)
     if not force_ai_fallback and ocr_quality_score(local_text) >= 0.65:
@@ -198,8 +196,6 @@ def extract_text_from_image(
         image=image,
         filename=filename,
     ).strip()
-
-    print("AI TEXT:", ai_text[:500])
 
     # sécurité
     if not ai_text:

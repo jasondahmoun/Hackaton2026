@@ -189,11 +189,11 @@ export default function CRM() {
                       }}
                     >
                       <div style={{
-                        fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--text-h)',
+                        fontSize: 12, fontWeight: 600, color: 'var(--text-h)',
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         marginBottom: 4,
                       }}>
-                        {r._id}
+                        {r.title || 'Aucun titre'}
                       </div>
                       {preview && (
                         <div style={{
@@ -222,7 +222,7 @@ export default function CRM() {
             {/* Détail */}
             <div>
               {selected ? (
-                <OcrDetail doc={selected} />
+                <OcrDetail key={selected._id} doc={selected} />
               ) : (
                 <div className="empty-state" style={{ border: '1px solid var(--border)', borderRadius: 8, minHeight: 300 }}>
                   <span className="empty-icon"></span>

@@ -11,3 +11,7 @@ scikit-learn==1.4.0
 pdf2image
 opencv-python
 numpy
+python-docx
+openai
+
+

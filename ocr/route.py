@@ -2,9 +2,14 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 from bson import ObjectId
 from pdf2image import convert_from_bytes
-from ocr.ocr_pretraitement import preprocess_image
+#from ocr.ocr_pretraitement import preprocess_image
+from ocr.pipeline import (
+    extract_text_from_image,
+    extract_text_from_pdf_bytes,
+    extract_text_from_docx_bytes,
+)
 import uuid
-import pytesseract
+#import pytesseract
 from PIL import Image
 import io
 import os
@@ -43,13 +48,15 @@ async def upload_and_process(file: UploadFile = File(...)):
     if not file.content_type:
         raise HTTPException(status_code=400, detail="Type de fichier manquant")
 
-    if not (
-        file.content_type.startswith("image/")
-        or file.content_type == "application/pdf"
-    ):
+    allowed_types = [
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ]
+
+    if not (file.content_type.startswith("image/") or file.content_type in allowed_types):
         raise HTTPException(
             status_code=400,
-            detail="Formats acceptés : image/* ou application/pdf"
+            detail="Formats acceptés : image/*, application/pdf, .docx"
         )
 
     fake_user_id = ObjectId("65f000000000000000000001")
@@ -65,6 +72,7 @@ async def upload_and_process(file: UploadFile = File(...)):
 
     raw_document = {
         "user_id": fake_user_id,
+        "title": file.filename.split(".")[0],
         "filename": file.filename,
         "file_url": file_path,
         "status": False,
@@ -75,28 +83,27 @@ async def upload_and_process(file: UploadFile = File(...)):
     document_id = document_insert.inserted_id
 
     try:
-        extracted_text = ""
-
-        #  PDF
         if file.content_type == "application/pdf":
-            pages = convert_from_bytes(contents, dpi=300)
+            extracted_text = extract_text_from_pdf_bytes(
+                contents=contents,
+                filename=file.filename,
+                lang="fra",
+            )
 
-            page_texts = []
-            for page_number, page in enumerate(pages, start=1):
-                processed_page = preprocess_image(page)
-                text = pytesseract.image_to_string(processed_page, lang="fra")
-                page_texts.append(f"--- Page {page_number} ---\n{text}")
+        elif file.content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            extracted_text = extract_text_from_docx_bytes(contents)
 
-            extracted_text = "\n\n".join(page_texts)
-
-        #  Image
         else:
             image = Image.open(io.BytesIO(contents))
-            processed_image = preprocess_image(image)
-            extracted_text = pytesseract.image_to_string(processed_image, lang="fra")
+            extracted_text = extract_text_from_image(
+                image=image,
+                filename=file.filename,
+                lang="fra",
+            )
 
         clean_result = {
             "document_id": document_id,
+            "title": file.filename.split(".")[0],
             "extracted_text": extracted_text,
             "confidence": None,
             "language": "fr",
@@ -133,8 +140,7 @@ async def upload_and_process(file: UploadFile = File(...)):
             {"$set": {"status": "failed"}}
         )
         raise HTTPException(status_code=500, detail=f"Erreur OCR : {str(e)}")
-
-
+    
 @router.get("/documents")
 async def get_documents(limit: int = 10):
     db = get_db()

@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 from bson import ObjectId
 from pdf2image import convert_from_bytes
+import base64
 #from ocr.ocr_pretraitement import preprocess_image
 from ocr.pipeline import (
     extract_text_from_image,
@@ -66,9 +67,12 @@ async def upload_and_process(file: UploadFile = File(...)):
     file_path = os.path.join(UPLOAD_DIR, generated_name)
 
     contents = await file.read()
+    file_base64 = base64.b64encode(contents).decode("utf-8")
+    file_path = file_base64
 
-    with open(file_path, "wb") as saved_file:
-        saved_file.write(contents)
+
+    #with open(file_path, "wb") as saved_file:
+        #saved_file.write(contents)
 
     raw_document = {
         "user_id": fake_user_id,

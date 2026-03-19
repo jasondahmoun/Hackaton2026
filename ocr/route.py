@@ -200,6 +200,7 @@ async def get_ocr_result(document_id: str):
 
 @router.get("/documents/{document_id}/file")
 async def get_document_file(document_id: str):
+    from fastapi.responses import Response
     db = get_db()
     try:
         doc = await db.documents.find_one({"_id": ObjectId(document_id)})
@@ -207,7 +208,27 @@ async def get_document_file(document_id: str):
         raise HTTPException(status_code=400, detail="document_id invalide")
     if not doc:
         raise HTTPException(status_code=404, detail="Document introuvable")
+
     file_url = doc.get("file_url", "")
+
+    # Cas 1 : base64 stocké directement dans file_url
+    if file_url and len(file_url) > 200 and not os.path.exists(file_url):
+        try:
+            raw = base64.b64decode(file_url)
+            # Détection du type par magic bytes
+            if raw[:4] == b'%PDF' or raw[:4] == b'\x25\x50\x44\x46':
+                media_type = "application/pdf"
+            elif raw[:8] == b'\x89PNG\r\n\x1a\n':
+                media_type = "image/png"
+            elif raw[:3] == b'\xff\xd8\xff':
+                media_type = "image/jpeg"
+            else:
+                media_type = doc.get("content_type") or "application/octet-stream"
+            return Response(content=raw, media_type=media_type)
+        except Exception:
+            raise HTTPException(status_code=500, detail="Erreur décodage base64")
+
+    # Cas 2 : chemin fichier sur disque
     if not os.path.isfile(file_url):
         raise HTTPException(status_code=404, detail=f"Fichier introuvable : {file_url}")
     return FileResponse(file_url)

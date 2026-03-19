@@ -1,8 +1,26 @@
+import { useState, useEffect } from "react";
+
+const API = "http://localhost:8000";
+
 export default function CorrectionModal({ c, onClose }) {
    if (!c) return null;
 
    const docId  = c.document_id || c._id;
-   const imgUrl = docId ? `/documents/${docId}/file` : null;
+   const fileUrl = docId ? `${API}/documents/${docId}/file` : null;
+   const [fileType, setFileType] = useState(null);
+
+   useEffect(() => {
+      if (!fileUrl) return;
+      setFileType(null);
+      fetch(fileUrl, { method: "HEAD" })
+         .then(r => {
+            const ct = r.headers.get("content-type") || "";
+            if (ct.includes("pdf")) setFileType("pdf");
+            else if (ct.startsWith("image/")) setFileType("image");
+            else setFileType("image"); 
+         })
+         .catch(() => setFileType("error"));
+   }, [fileUrl]);
 
    const nom     = c.extracted_info?.nom_fournisseur || c.infos_scrap_document?.Info_vendeur?.Nom || c.gouv_info?.nom_complet || c.infos_gouv?.nom_officiel || "—";
    const siret   = c.siret || c.extracted_info?.siret_fournisseur || c.NUM_SIRET || "—";
@@ -55,16 +73,23 @@ export default function CorrectionModal({ c, onClose }) {
                </div>
             </div>
 
-            {/* Image du document */}
-            {imgUrl && (
+            {fileUrl && fileType && fileType !== "error" && (
                <div style={{ borderBottom: "1px solid #e5e7eb", background: "#f9fafb", display: "flex", justifyContent: "center", padding: "12px 20px", flexShrink: 0 }}>
-                  <img
-                     src={imgUrl}
-                     alt="Document original"
-                     onClick={() => window.open(imgUrl, "_blank")}
-                     onError={e => { e.target.closest("div").style.display = "none" }}
-                     style={{ maxHeight: 220, maxWidth: "100%", borderRadius: 6, border: "1px solid #e5e7eb", cursor: "zoom-in", objectFit: "contain" }}
-                  />
+                  {fileType === "pdf" ? (
+                     <embed
+                        src={fileUrl}
+                        type="application/pdf"
+                        style={{ width: "100%", height: 300, borderRadius: 6, border: "1px solid #e5e7eb" }}
+                     />
+                  ) : (
+                     <img
+                        src={fileUrl}
+                        alt="Document original"
+                        onClick={() => window.open(fileUrl, "_blank")}
+                        onError={e => { e.target.closest("div").style.display = "none" }}
+                        style={{ maxHeight: 220, maxWidth: "100%", borderRadius: 6, border: "1px solid #e5e7eb", cursor: "zoom-in", objectFit: "contain" }}
+                     />
+                  )}
                </div>
             )}
 

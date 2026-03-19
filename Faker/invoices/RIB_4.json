@@ -1,0 +1,13 @@
+{
+  "IBAN": "FR3083825206121637909892080",
+  "BIC": "HVNRFRTO",
+  "ribKey": 918,
+  "bankCode": 36642,
+  "agenceCode": 23591,
+  "accountNumber": 46651173112,
+  "bankName": "Caisse d'épargne",
+  "supplierTitulaire": "Emmanuel-Antoine Roux",
+  "supplierName": "Benard",
+  "supplierAddr": "4, avenue Buisson\n47720 Legendre",
+  "bankAddr": "35, avenue Moreno\n72920 Lesage-sur-Chauveau"
+}

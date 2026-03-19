@@ -1,0 +1,59 @@
+{
+  "invoice_number": "INV-9757",
+  "date": "2025-03-31",
+  "desc_Siret": "Numéro de SIRET : ",
+  "desc_Name": "Nom de l'entreprise :",
+  "supplierSiret": "10038844600013",
+  "supplierName": "OFTP",
+  "supplierAddr": "211 RUE DU PLANCONNET 07430 VERNOSC-LES-ANNONAY",
+  "client": "Diallo",
+  "address_supplier": "39, rue Pierre\n84282 Traoredan",
+  "address_client": "68, avenue Charpentier\n22691 Martineau",
+  "items": [
+    {
+      "description": "Enceinte",
+      "quantity": 696,
+      "unit_price": 98.86,
+      "total": 68806.56
+    },
+    {
+      "description": "Table     ",
+      "quantity": 622,
+      "unit_price": 82.05,
+      "total": 51035.1
+    },
+    {
+      "description": "Bureau  ",
+      "quantity": 661,
+      "unit_price": 39.61,
+      "total": 26182.21
+    },
+    {
+      "description": "Vélo      ",
+      "quantity": 987,
+      "unit_price": 75.94,
+      "total": 74952.78
+    },
+    {
+      "description": "Bureau  ",
+      "quantity": 631,
+      "unit_price": 67.49,
+      "total": 42586.19
+    },
+    {
+      "description": "Bureau  ",
+      "quantity": 794,
+      "unit_price": 84.11,
+      "total": 66783.34
+    },
+    {
+      "description": "Enceinte",
+      "quantity": 381,
+      "unit_price": 82.8,
+      "total": 31546.8
+    }
+  ],
+  "totalHT": 361892.98,
+  "tva": 72378.6,
+  "totalTTC": 434271.58
+}

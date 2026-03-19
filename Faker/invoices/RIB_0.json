@@ -1,0 +1,13 @@
+{
+  "IBAN": "FR8738112841895231445690532",
+  "BIC": "GQGRFR4V",
+  "ribKey": 104,
+  "bankCode": 23621,
+  "agenceCode": 80964,
+  "accountNumber": 41300577578,
+  "bankName": "Caisse d'épargne",
+  "supplierTitulaire": "Édouard Delahaye Le Peron",
+  "supplierName": "Noël",
+  "supplierAddr": "rue Christine Breton\n04798 Louis-la-Forêt",
+  "bankAddr": "64, rue de Peltier\n10338 AllainBourg"
+}

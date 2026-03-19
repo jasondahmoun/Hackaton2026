@@ -1,0 +1,47 @@
+{
+  "invoice_number": "INV-3828",
+  "date": "2025-05-08",
+  "desc_Siret": "Numéro de SIRET : ",
+  "desc_Name": "Nom de l'entreprise :",
+  "supplierSiret": "10038844600013",
+  "supplierName": "OFTP",
+  "supplierAddr": "211 RUE DU PLANCONNET 07430 VERNOSC-LES-ANNONAY",
+  "client": "Georges S.A.S.",
+  "address_supplier": "32, avenue Margaux Lemoine\n81443 Lebreton",
+  "address_client": "340, boulevard Valette\n72638 Weiss",
+  "items": [
+    {
+      "description": "Vélo      ",
+      "quantity": 962,
+      "unit_price": 81.28,
+      "total": 78191.36
+    },
+    {
+      "description": "Chaise  ",
+      "quantity": 722,
+      "unit_price": 85.01,
+      "total": 61377.22
+    },
+    {
+      "description": "Chaise  ",
+      "quantity": 597,
+      "unit_price": 73.25,
+      "total": 43730.25
+    },
+    {
+      "description": "Bureau  ",
+      "quantity": 937,
+      "unit_price": 55.67,
+      "total": 52162.79
+    },
+    {
+      "description": "Table     ",
+      "quantity": 823,
+      "unit_price": 69.1,
+      "total": 56869.3
+    }
+  ],
+  "totalHT": 292330.92,
+  "tva": 58466.18,
+  "totalTTC": 350797.1
+}

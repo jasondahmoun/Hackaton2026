@@ -62,6 +62,7 @@ export default function CorrectionModal({ c, onClose }) {
                      src={imgUrl}
                      alt="Document original"
                      onClick={() => window.open(imgUrl, "_blank")}
+                     onError={e => { e.target.closest("div").style.display = "none" }}
                      style={{ maxHeight: 220, maxWidth: "100%", borderRadius: 6, border: "1px solid #e5e7eb", cursor: "zoom-in", objectFit: "contain" }}
                   />
                </div>

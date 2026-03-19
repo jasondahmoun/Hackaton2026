@@ -1,0 +1,47 @@
+{
+  "invoice_number": "INV-6585",
+  "date": "2026-01-18",
+  "desc_Siret": "No Siret :",
+  "desc_Name": "Entreprise : ",
+  "supplierSiret": "00032517500065",
+  "supplierName": "Thierry JANOYER",
+  "supplierAddr": "51 RUE MARX DORMOY, 13004 MARSEILLE",
+  "client": "Martinez",
+  "address_supplier": "27, avenue de Perez\n53598 Garcia-sur-Colin",
+  "address_client": "42, chemin Eugène Brun\n26288 Letellier",
+  "items": [
+    {
+      "description": "Enceinte",
+      "quantity": 616,
+      "unit_price": 39.24,
+      "total": 24171.84
+    },
+    {
+      "description": "Feuille   ",
+      "quantity": 927,
+      "unit_price": 21.19,
+      "total": 19643.13
+    },
+    {
+      "description": "Feuille   ",
+      "quantity": 819,
+      "unit_price": 27.81,
+      "total": 22776.39
+    },
+    {
+      "description": "Enceinte",
+      "quantity": 940,
+      "unit_price": 61.28,
+      "total": 57603.2
+    },
+    {
+      "description": "Table     ",
+      "quantity": 710,
+      "unit_price": 20.09,
+      "total": 14263.9
+    }
+  ],
+  "totalHT": 138458.46,
+  "tva": 27691.69,
+  "totalTTC": 166150.15
+}

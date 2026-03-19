@@ -265,95 +265,12 @@ function FileCard({ file, onSendToCRM, onOpenImage }) {
               ))}
             </div>
           )}
-
-          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-            <button className="btn btn-primary btn-sm" onClick={() => onSendToCRM(file)}>
-              Envoyer au CRM
-            </button>
-            <button className="btn btn-orange btn-sm">
-              Conformité
-            </button>
-          </div>
         </>
       )}
     </div>
   )
 }
 
-// ── DEBUG PANEL (temporaire) ──────────────────────────────
-function DebugPanel({ files }) {
-  const [open, setOpen] = useState(false)
-  const done = files.filter(f => f.status === 'done' || f.status === 'error')
-  if (!done.length) return null
-
-  return (
-    <div style={{
-      position: 'fixed', bottom: 16, right: 16, zIndex: 9999,
-      width: open ? 480 : 'auto',
-      background: '#0f172a', color: '#e2e8f0',
-      borderRadius: 10, boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
-      fontFamily: 'monospace', fontSize: 12,
-      overflow: 'hidden',
-    }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          width: '100%', padding: '8px 14px',
-          background: '#1e293b', border: 'none', cursor: 'pointer',
-          color: '#94a3b8', fontSize: 12, textAlign: 'left',
-          display: 'flex', alignItems: 'center', gap: 8,
-        }}
-      >
-        <span style={{ color: '#22d3ee' }}>◉</span>
-        DEBUG — {done.length} doc{done.length > 1 ? 's' : ''} traité{done.length > 1 ? 's' : ''}
-        <span style={{ marginLeft: 'auto' }}>{open ? '▼' : '▲'}</span>
-      </button>
-
-      {open && (
-        <div style={{ maxHeight: 420, overflowY: 'auto', padding: '12px 14px' }}>
-          {done.map(f => (
-            <div key={f.id} style={{ marginBottom: 20, borderBottom: '1px solid #334155', paddingBottom: 12 }}>
-              <div style={{ color: '#f472b6', fontWeight: 700, marginBottom: 6 }}>
-                📄 {f.name}
-              </div>
-
-              {f.status === 'error' ? (
-                <div style={{ color: '#f87171' }}>❌ {f.errorMessage}</div>
-              ) : (
-                <>
-                  <div style={{ marginBottom: 4 }}>
-                    <span style={{ color: '#94a3b8' }}>type : </span>
-                    <span style={{ color: '#34d399' }}>{f.type || '—'}</span>
-                  </div>
-                  <div style={{ marginBottom: 4 }}>
-                    <span style={{ color: '#94a3b8' }}>docId : </span>
-                    <span style={{ color: '#fbbf24' }}>{f.docId || '—'}</span>
-                  </div>
-                  <div style={{ color: '#94a3b8', marginBottom: 4 }}>champs :</div>
-                  {f.fields && Object.keys(f.fields).length > 0
-                    ? Object.entries(f.fields).map(([k, v]) => (
-                        <div key={k} style={{ paddingLeft: 12 }}>
-                          <span style={{ color: (k === 'montantHT' || k === 'montantTTC') ? '#fbbf24' : '#7dd3fc' }}>{k}</span>
-                          <span style={{ color: '#64748b' }}> : </span>
-                          <span style={{ color: (k === 'montantHT' || k === 'montantTTC') ? '#fbbf24' : '#e2e8f0', fontWeight: (k === 'montantHT' || k === 'montantTTC') ? 700 : 400 }}>{v}</span>
-                        </div>
-                      ))
-                    : <div style={{ paddingLeft: 12, color: '#64748b' }}>aucun champ extrait</div>
-                  }
-                  {f.anomalies?.length > 0 && (
-                    <div style={{ marginTop: 6, color: '#fb923c' }}>
-                      ⚠ anomalies : {f.anomalies.map(a => a.message).join(', ')}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 export default function Upload() {
   const [files, setFiles] = useState([])

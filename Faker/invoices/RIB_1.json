@@ -1,0 +1,13 @@
+{
+  "IBAN": "FR3787910728290573757907025",
+  "BIC": "DXCGFR5M",
+  "ribKey": 366,
+  "bankCode": 98750,
+  "agenceCode": 55671,
+  "accountNumber": 33773148999,
+  "bankName": "Crédit mutuelle",
+  "supplierTitulaire": "Suzanne Blot",
+  "supplierName": "Gomez Salmon S.A.S.",
+  "supplierAddr": "705, boulevard de Cohen\n35265 Saint ÉdouardBourg",
+  "bankAddr": "33, avenue de Aubry\n17669 Carreboeuf"
+}

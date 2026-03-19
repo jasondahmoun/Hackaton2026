@@ -1,0 +1,47 @@
+{
+  "invoice_number": "INV-1781",
+  "date": "2025-07-25",
+  "desc_Siret": "No Siret :",
+  "desc_Name": "Nom de l'entreprise :",
+  "supplierSiret": "10038820600011",
+  "supplierName": "INDIVISION SARTHOU JEAN ET MARIE-AMELIE",
+  "supplierAddr": "20 ALLEE DES GENISTAS 33680 LACANAU",
+  "client": "Renard Joubert SA",
+  "address_supplier": "24, boulevard Bazin\n24581 Saint Marine-la-Forêt",
+  "address_client": "79, avenue de Leduc\n62254 Saint Agnès",
+  "items": [
+    {
+      "description": "Enceinte",
+      "quantity": 677,
+      "unit_price": 50.36,
+      "total": 34093.72
+    },
+    {
+      "description": "Table     ",
+      "quantity": 992,
+      "unit_price": 64.75,
+      "total": 64232.0
+    },
+    {
+      "description": "Vélo      ",
+      "quantity": 351,
+      "unit_price": 63.42,
+      "total": 22260.42
+    },
+    {
+      "description": "Enceinte",
+      "quantity": 481,
+      "unit_price": 25.98,
+      "total": 12496.38
+    },
+    {
+      "description": "Chaise  ",
+      "quantity": 422,
+      "unit_price": 83.71,
+      "total": 35325.62
+    }
+  ],
+  "totalHT": 168408.14,
+  "tva": 33681.63,
+  "totalTTC": 202089.77
+}

@@ -76,13 +76,6 @@ function Sidebar() {
                           : "#dc2626",
                }}
             />
-            <span className="sidebar-footer-text">
-               {health === null
-                  ? "Connexion…"
-                  : health
-                    ? "Backend OK"
-                    : "Backend offline"}
-            </span>
          </div>
       </aside>
    );

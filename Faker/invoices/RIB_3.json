@@ -1,0 +1,13 @@
+{
+  "IBAN": "FR6136334378741442779838887",
+  "BIC": "SLTVFRED",
+  "ribKey": 697,
+  "bankCode": 99849,
+  "agenceCode": 50554,
+  "accountNumber": 54123043198,
+  "bankName": "Crédit mutuelle",
+  "supplierTitulaire": "Audrey Gomez",
+  "supplierName": "OFTP",
+  "supplierAddr": "211 RUE DU PLANCONNET 07430 VERNOSC-LES-ANNONAY",
+  "bankAddr": "28, boulevard Leclercq\n41710 BourgeoisBourg"
+}

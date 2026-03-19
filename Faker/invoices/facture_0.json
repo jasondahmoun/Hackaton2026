@@ -1,0 +1,71 @@
+{
+  "invoice_number": "INV-7397",
+  "date": "2025-04-08",
+  "desc_Siret": "SIRET :",
+  "desc_Name": "Entreprise : ",
+  "supplierSiret": "10038843800010",
+  "supplierName": "Leconte Cordier S.A.",
+  "supplierAddr": "9, boulevard Charlotte Gros\n06893 Morvan-sur-Lemaire",
+  "client": "Legros",
+  "address_supplier": "27, chemin Dubois\n27982 Reynaud",
+  "address_client": "3, rue Maillard\n28764 Saint Denise",
+  "items": [
+    {
+      "description": "Enceinte",
+      "quantity": 828,
+      "unit_price": 90.57,
+      "total": 74991.96
+    },
+    {
+      "description": "Chaise  ",
+      "quantity": 457,
+      "unit_price": 12.93,
+      "total": 5909.01
+    },
+    {
+      "description": "Feuille   ",
+      "quantity": 584,
+      "unit_price": 73.79,
+      "total": 43093.36
+    },
+    {
+      "description": "Vélo      ",
+      "quantity": 167,
+      "unit_price": 69.61,
+      "total": 11624.87
+    },
+    {
+      "description": "Feuille   ",
+      "quantity": 229,
+      "unit_price": 14.27,
+      "total": 3267.83
+    },
+    {
+      "description": "Feuille   ",
+      "quantity": 114,
+      "unit_price": 32.93,
+      "total": 3754.02
+    },
+    {
+      "description": "Enceinte",
+      "quantity": 234,
+      "unit_price": 70.34,
+      "total": 16459.56
+    },
+    {
+      "description": "Vélo      ",
+      "quantity": 288,
+      "unit_price": 39.13,
+      "total": 11269.44
+    },
+    {
+      "description": "Feuille   ",
+      "quantity": 452,
+      "unit_price": 90.19,
+      "total": 40765.88
+    }
+  ],
+  "totalHT": 211135.93,
+  "tva": 42227.19,
+  "totalTTC": 253363.12
+}
